@@ -30,8 +30,14 @@
     }
   ],
   "ideState": {
-    "lastActiveProjectId": "",
-    "openTabs": [],
-    "activeTabPath": ""
+    "lastActiveProjectId": "local-zak_os-source",
+    "openTabs": [
+      {
+        "path": "C:\\Users\\Zakar\\Documents\\Web_Dev\\Zak_OS\\src\\App.tsx",
+        "name": "App.tsx",
+        "language": "typescript"
+      }
+    ],
+    "activeTabPath": "C:\\Users\\Zakar\\Documents\\Web_Dev\\Zak_OS\\src\\App.tsx"
   }
 }

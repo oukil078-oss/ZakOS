@@ -778,8 +778,8 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
           }}
           className={`flex items-center justify-between px-2 py-1 rounded cursor-pointer transition group ${
             isSelected
-              ? 'bg-cyan-500/20 text-cyan-300 font-bold border-l-2 border-cyan-400'
-              : 'text-slate-400 hover:bg-space-850 hover:text-slate-200'
+              ? 'bg-[#D4FF00]/15 text-[#D4FF00] font-bold border-l-2 border-[#D4FF00]'
+              : 'text-slate-400 hover:bg-[#181B22] hover:text-slate-200'
           }`}
           style={{ paddingLeft: `${Math.max(8, depth * 14)}px` }}
         >
@@ -791,7 +791,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                 <Folder className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               )
             ) : (
-              <FileCode className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <FileCode className="w-3.5 h-3.5 text-[#D4FF00] shrink-0" />
             )}
             <span className="truncate font-mono text-[11px]">{node.name}</span>
           </div>
@@ -822,24 +822,24 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
   );
 
   return (
-    <div className="h-full w-full flex-1 flex overflow-hidden bg-space-950 font-sans text-xs">
+    <div className="h-full w-full flex-1 flex overflow-hidden bg-[#0B0D10] font-sans text-xs">
       {/* COLUMN 1: Project File Tree (Collapsible Left) */}
       {!isZenMode && (
         isLeftTreeOpen ? (
-          <div className="w-64 h-full bg-space-900 border-r border-cyan-500/20 flex flex-col justify-between shrink-0 font-mono transition-all duration-200">
+          <div className="w-64 h-full bg-[#12151B] border-r border-white/[0.08] flex flex-col justify-between shrink-0 font-mono transition-all duration-200">
             <div>
               {/* Workspace Switcher Header Dropdown Button */}
-              <div className="relative p-2 border-b border-cyan-500/20 bg-space-950">
+              <div className="relative p-2 border-b border-white/[0.08] bg-[#0B0D10]">
                 <div className="flex items-center space-x-1">
                   <button
                     onClick={() => setIsWorkspaceDropdownOpen(!isWorkspaceDropdownOpen)}
-                    className="flex-1 p-2 rounded-lg bg-space-900 hover:bg-space-850 border border-cyan-500/30 text-left flex items-center justify-between transition group shadow-sm min-w-0"
+                    className="flex-1 p-2 rounded-lg bg-[#12151B] hover:bg-[#181B22] border border-white/[0.12] text-left flex items-center justify-between transition group shadow-sm min-w-0"
                     title="Switch Workspace / Open Folder"
                   >
                     <div className="flex items-center space-x-2 truncate">
-                      <FolderGit2 className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <FolderGit2 className="w-4 h-4 text-[#D4FF00] shrink-0" />
                       <div className="truncate">
-                        <div className="font-bold text-xs text-white truncate group-hover:text-cyan-300">
+                        <div className="font-bold text-xs text-white truncate group-hover:text-[#D4FF00]">
                           {currentProject.title}
                         </div>
                         <div className="text-[9px] text-slate-500 truncate">
@@ -847,12 +847,12 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                         </div>
                       </div>
                     </div>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 group-hover:text-cyan-300" />
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 group-hover:text-[#D4FF00]" />
                   </button>
 
                   <button
                     onClick={() => setIsLeftTreeOpen(false)}
-                    className="p-2 rounded-lg bg-space-900 hover:bg-space-800 border border-slate-800 text-slate-400 hover:text-cyan-300"
+                    className="p-2 rounded-lg bg-[#12151B] hover:bg-[#1F242D] border border-slate-800 text-slate-400 hover:text-[#D4FF00]"
                     title="Collapse File Tree (Ctrl+B)"
                   >
                     <PanelLeftClose className="w-3.5 h-3.5" />
@@ -861,7 +861,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
 
                 {/* Dropdown Menu */}
                 {isWorkspaceDropdownOpen && (
-                  <div className="absolute left-2 right-2 top-14 bg-space-900 border border-cyan-500/40 rounded-xl shadow-glass-glow py-2 z-50 animate-in fade-in text-xs font-mono">
+                  <div className="absolute left-2 right-2 top-14 bg-[#12151B] border border-[#D4FF00]/40 rounded-xl shadow-glass-glow py-2 z-50 animate-in fade-in text-xs font-mono">
                     <div className="px-2.5 pb-2 border-b border-slate-800 space-y-1.5">
                       <input
                         type="text"
@@ -869,7 +869,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                         value={workspaceSearch}
                         onChange={(e) => setWorkspaceSearch(e.target.value)}
                         placeholder="Search workspaces..."
-                        className="w-full bg-space-950 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-cyan-400"
+                        className="w-full bg-[#0B0D10] border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-[#D4FF00]"
                       />
                       <div className="flex items-center justify-between text-[10px] text-slate-500 uppercase">
                         <span>WORKSPACES ({projectsList.length})</span>
@@ -878,7 +878,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                             setViewMode('welcome-hub');
                             setIsWorkspaceDropdownOpen(false);
                           }}
-                          className="text-cyan-400 hover:underline flex items-center gap-1"
+                          className="text-[#D4FF00] hover:underline flex items-center gap-1"
                         >
                           <LayoutGrid className="w-3 h-3" /> HUB
                         </button>
@@ -892,15 +892,15 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                           onClick={() => handleSelectProject(proj)}
                           className={`w-full p-2 rounded-lg text-left transition flex items-center justify-between ${
                             proj.id === currentProject.id
-                              ? 'bg-cyan-500/20 text-cyan-200 font-bold border border-cyan-500/40'
-                              : 'hover:bg-space-800 text-slate-300'
+                              ? 'bg-[#D4FF00]/15 text-white font-bold border border-[#D4FF00]/40'
+                              : 'hover:bg-[#1F242D] text-slate-300'
                           }`}
                         >
                           <div className="truncate flex-1 min-w-0">
                             <div className="text-[11px] truncate text-slate-100">{proj.title}</div>
                             <div className="text-[9px] text-slate-500 truncate">{proj.path}</div>
                           </div>
-                          <span className="text-[9px] px-1 py-0.2 rounded bg-space-950 border border-slate-800 text-slate-400 shrink-0 ml-1">
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-[#0B0D10] border border-slate-800 text-slate-400 shrink-0 ml-1">
                             {proj.language}
                           </span>
                         </button>
@@ -913,7 +913,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                           setIsWorkspaceDropdownOpen(false);
                           setIsOpenFolderModalOpen(true);
                         }}
-                        className="w-full py-1.5 px-2 rounded bg-space-800 hover:bg-space-700 text-cyan-300 text-[11px] font-bold flex items-center justify-center space-x-1.5"
+                        className="w-full py-1.5 px-2 rounded bg-[#1F242D] hover:bg-[#2A313D] text-[#D4FF00] text-[11px] font-bold flex items-center justify-center space-x-1.5"
                       >
                         <FolderPlus className="w-3.5 h-3.5" />
                         <span>+ OPEN SYSTEM FOLDER</span>
@@ -924,7 +924,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                           setIsWorkspaceDropdownOpen(false);
                           setIsNewProjectModalOpen(true);
                         }}
-                        className="w-full py-1.5 px-2 rounded bg-space-950 hover:bg-space-800 text-slate-300 text-[11px] flex items-center justify-center space-x-1.5 border border-slate-800"
+                        className="w-full py-1.5 px-2 rounded bg-[#0B0D10] hover:bg-[#1F242D] text-slate-300 text-[11px] flex items-center justify-center space-x-1.5 border border-slate-800"
                       >
                         <Plus className="w-3.5 h-3.5 text-amber-400" />
                         <span>+ CREATE NEW VAULT PROJECT</span>
@@ -941,7 +941,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                   value={treeSearch}
                   onChange={(e) => setTreeSearch(e.target.value)}
                   placeholder="Filter files..."
-                  className="flex-1 bg-space-950 border border-slate-800 rounded px-2 py-1 text-[10px] text-slate-200 focus:outline-none focus:border-cyan-400 mr-1.5"
+                  className="flex-1 bg-[#0B0D10] border border-slate-800 rounded px-2 py-1 text-[10px] text-slate-200 focus:outline-none focus:border-[#D4FF00] mr-1.5"
                 />
                 <div className="flex items-center space-x-1 shrink-0">
                   <button
@@ -949,14 +949,14 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                       setCreateItemType('file');
                       setIsCreateItemModalOpen(true);
                     }}
-                    className="p-1 rounded hover:bg-space-800 text-slate-400 hover:text-cyan-300"
+                    className="p-1 rounded hover:bg-[#1F242D] text-slate-400 hover:text-[#D4FF00]"
                     title="New File"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={loadProjectsAndTree}
-                    className="p-1 rounded hover:bg-space-800 text-slate-400 hover:text-cyan-300"
+                    className="p-1 rounded hover:bg-[#1F242D] text-slate-400 hover:text-[#D4FF00]"
                     title="Refresh Tree"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
@@ -971,10 +971,10 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
             </div>
 
             {/* Bottom Hub Launcher Button */}
-            <div className="p-2 border-t border-slate-800 bg-space-950/80 flex items-center justify-between text-[10px] text-slate-500">
+            <div className="p-2 border-t border-slate-800 bg-[#0B0D10]/80 flex items-center justify-between text-[10px] text-slate-500">
               <button
                 onClick={() => setViewMode(viewMode === 'welcome-hub' ? 'editor' : 'welcome-hub')}
-                className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-bold"
+                className="text-[#D4FF00] hover:text-[#D4FF00] flex items-center gap-1 font-bold"
               >
                 <LayoutGrid className="w-3.5 h-3.5" />
                 <span>{viewMode === 'welcome-hub' ? 'SWITCH TO CODE' : 'WORKSPACES HUB'}</span>
@@ -984,17 +984,17 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
           </div>
         ) : (
           /* Left Collapsed Micro-Rail */
-          <div className="w-10 h-full bg-space-900 border-r border-cyan-500/20 flex flex-col items-center py-2 space-y-3 shrink-0">
+          <div className="w-10 h-full bg-[#12151B] border-r border-white/[0.08] flex flex-col items-center py-2 space-y-3 shrink-0">
             <button
               onClick={() => setIsLeftTreeOpen(true)}
-              className="p-2 rounded hover:bg-space-800 text-cyan-400 hover:text-cyan-300"
+              className="p-2 rounded hover:bg-[#1F242D] text-[#D4FF00] hover:text-[#D4FF00]"
               title="Expand File Tree"
             >
               <PanelLeftOpen className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode(viewMode === 'welcome-hub' ? 'editor' : 'welcome-hub')}
-              className="p-2 rounded hover:bg-space-800 text-slate-400 hover:text-white"
+              className="p-2 rounded hover:bg-[#1F242D] text-slate-400 hover:text-white"
               title="Workspaces Hub"
             >
               <LayoutGrid className="w-4 h-4" />
@@ -1006,16 +1006,16 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
       {/* COLUMN 2: Center Editor & Tactical Terminal (Expands dynamically) */}
       {viewMode === 'welcome-hub' ? (
         /* VS Code Style Welcome / Workspace Hub Screen */
-        <div className="flex-1 flex flex-col overflow-y-auto p-6 bg-space-950 font-sans space-y-6">
-          <div className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-r from-space-900 via-space-850 to-space-900 border border-cyan-500/30 shadow-glass-glow">
+        <div className="flex-1 flex flex-col overflow-y-auto p-6 bg-[#0B0D10] font-sans space-y-6">
+          <div className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-r from-space-900 via-space-850 to-space-900 border border-white/[0.12] shadow-glass-glow">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
-                <div className="flex items-center space-x-2 text-xs font-mono text-cyan-400">
+                <div className="flex items-center space-x-2 text-xs font-mono text-[#D4FF00]">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   <span>ZAK_OS // UNIVERSAL WORKSPACE & PROJECT MANAGER</span>
                 </div>
                 <h1 className="font-display font-black text-2xl text-white tracking-wider mt-1">
-                  WORKSPACES <span className="text-cyan-400">HUB</span>
+                  WORKSPACES <span className="text-[#D4FF00]">HUB</span>
                 </h1>
                 <p className="text-xs text-slate-400 font-mono mt-0.5">
                   Universal filesystem mounts, autonomous AI architecture scanning, and Obsidian Vault node synchronization.
@@ -1025,7 +1025,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
               <div className="flex flex-wrap items-center gap-2 font-mono">
                 <button
                   onClick={() => setIsOpenFolderModalOpen(true)}
-                  className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs flex items-center space-x-1.5 shadow-glow-cyan transition"
+                  className="px-3.5 py-2 rounded-xl bg-[#D4FF00] hover:bg-[#c6f500] text-black font-bold text-xs flex items-center space-x-1.5 shadow-md transition"
                 >
                   <FolderPlus className="w-4 h-4" />
                   <span>OPEN SYSTEM FOLDER</span>
@@ -1033,7 +1033,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
 
                 <button
                   onClick={() => setIsNewProjectModalOpen(true)}
-                  className="px-3.5 py-2 rounded-xl bg-space-800 hover:bg-space-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center space-x-1.5 transition"
+                  className="px-3.5 py-2 rounded-xl bg-[#1F242D] hover:bg-[#2A313D] border border-slate-700 text-slate-200 text-xs font-bold flex items-center space-x-1.5 transition"
                 >
                   <Plus className="w-4 h-4 text-amber-400" />
                   <span>NEW VAULT PROJECT</span>
@@ -1046,7 +1046,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
           <div className="space-y-3 font-mono">
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
               <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                <FolderGit2 className="w-4 h-4 text-cyan-400" />
+                <FolderGit2 className="w-4 h-4 text-[#D4FF00]" />
                 ACTIVE WORKSPACES & PROJECTS ({projectsList.length})
               </span>
               <span className="text-[10px] text-slate-500">Autonomous AI Synced</span>
@@ -1056,15 +1056,15 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
               {projectsList.map((proj) => (
                 <div
                   key={proj.id}
-                  className={`p-4 rounded-xl bg-space-900 border transition flex flex-col justify-between space-y-3 ${
+                  className={`p-4 rounded-xl bg-[#12151B] border transition flex flex-col justify-between space-y-3 ${
                     proj.id === currentProject.id
-                      ? 'border-cyan-500/50 shadow-glass-glow'
-                      : 'border-slate-800 hover:border-cyan-500/30'
+                      ? 'border-[#D4FF00]/50 shadow-glass-glow'
+                      : 'border-slate-800 hover:border-white/[0.12]'
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-space-950 border border-slate-700 text-cyan-300 font-bold uppercase">
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-[#0B0D10] border border-slate-700 text-[#D4FF00] font-bold uppercase">
                         {proj.language}
                       </span>
                       <span className="text-[9px] text-slate-500 font-mono">
@@ -1085,7 +1085,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
 
                     <button
                       onClick={() => handleSelectProject(proj)}
-                      className="px-3 py-1 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition flex items-center gap-1"
+                      className="px-3 py-1 rounded bg-[#D4FF00]/15 hover:bg-[#D4FF00]/30 text-[#D4FF00] border border-[#D4FF00]/40 text-xs font-bold transition flex items-center gap-1"
                     >
                       <span>LAUNCH IDE</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -1098,15 +1098,15 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
         </div>
       ) : (
         /* Monaco Code Studio & Tactical Terminal */
-        <div className="flex-1 h-full flex flex-col overflow-hidden bg-space-950 transition-all">
+        <div className="flex-1 h-full flex flex-col overflow-hidden bg-[#0B0D10] transition-all">
           {/* Top IDE Header: Tabs, Panes & Zen Mode Controls */}
-          <div className="h-10 border-b border-cyan-500/20 bg-space-900 px-2 flex items-center justify-between shrink-0 font-mono text-xs">
+          <div className="h-10 border-b border-white/[0.08] bg-[#12151B] px-2 flex items-center justify-between shrink-0 font-mono text-xs">
             {/* Open Tabs */}
             <div className="flex items-center space-x-1 overflow-x-auto no-scrollbar flex-1 mr-2">
               {!isLeftTreeOpen && !isZenMode && (
                 <button
                   onClick={() => setIsLeftTreeOpen(true)}
-                  className="p-1.5 rounded hover:bg-space-800 text-cyan-400 mr-1"
+                  className="p-1.5 rounded hover:bg-[#1F242D] text-[#D4FF00] mr-1"
                   title="Expand File Tree"
                 >
                   <PanelLeftOpen className="w-3.5 h-3.5" />
@@ -1122,11 +1122,11 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                     onClick={() => setActiveTabPath(tab.path)}
                     className={`flex items-center space-x-2 px-3 py-1.5 rounded-t-md cursor-pointer transition text-[11px] border-t border-x ${
                       isActive
-                        ? 'bg-space-950 border-cyan-500/40 text-cyan-300 font-bold'
-                        : 'bg-space-900/60 border-transparent text-slate-400 hover:text-slate-200'
+                        ? 'bg-[#0B0D10] border-[#D4FF00]/40 text-[#D4FF00] font-bold'
+                        : 'bg-[#12151B]/60 border-transparent text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    <FileCode className="w-3 h-3 text-cyan-400" />
+                    <FileCode className="w-3 h-3 text-[#D4FF00]" />
                     <span className="truncate max-w-[120px]">{tab.name}</span>
                     {tab.isDirty && <span className="w-2 h-2 rounded-full bg-amber-400" title="Unsaved changes" />}
                     <button
@@ -1151,7 +1151,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                       href={activeServers[0].url}
                       target="_blank"
                       rel="noreferrer"
-                      className="underline font-bold text-cyan-300 hover:text-cyan-200 ml-1"
+                      className="underline font-bold text-[#D4FF00] hover:text-white ml-1"
                     >
                       OPEN ↗
                     </a>
@@ -1171,7 +1171,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                 className={`p-1.5 rounded border text-[10px] font-bold flex items-center space-x-1 transition ${
                   isZenMode
                     ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                    : 'bg-space-800 hover:bg-space-700 border-slate-700 text-slate-400 hover:text-slate-200'
+                    : 'bg-[#1F242D] hover:bg-[#2A313D] border-slate-700 text-slate-400 hover:text-slate-200'
                 }`}
                 title="Toggle Zen Mode (Full Width Editor)"
               >
@@ -1185,17 +1185,17 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                 className={`flex items-center space-x-1 px-2.5 py-1 rounded text-[11px] font-bold border transition ${
                   saveSuccess
                     ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                    : 'bg-space-800 hover:bg-space-700 border-slate-700 text-slate-200'
+                    : 'bg-[#1F242D] hover:bg-[#2A313D] border-slate-700 text-slate-200'
                 }`}
               >
-                {saveSuccess ? <Check className="w-3 h-3 text-emerald-400" /> : <Save className="w-3 h-3 text-cyan-400" />}
+                {saveSuccess ? <Check className="w-3 h-3 text-emerald-400" /> : <Save className="w-3 h-3 text-[#D4FF00]" />}
                 <span>{saveSuccess ? 'SAVED' : 'SAVE'}</span>
               </button>
 
               <button
                 onClick={handleRunCode}
                 disabled={isRunningCode || !activeTab}
-                className="flex items-center space-x-1 px-3 py-1 rounded bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold text-[11px] shadow-glow-cyan transition"
+                className="flex items-center space-x-1 px-3 py-1 rounded bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold text-[11px] shadow-md transition"
               >
                 <Play className="w-3 h-3 fill-black" />
                 <span>{isRunningCode ? 'RUNNING...' : 'RUN (F5)'}</span>
@@ -1204,7 +1204,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
               {!isRightCopilotOpen && !isZenMode && (
                 <button
                   onClick={() => setIsRightCopilotOpen(true)}
-                  className="p-1.5 rounded hover:bg-space-800 text-blue-400"
+                  className="p-1.5 rounded hover:bg-[#1F242D] text-blue-400"
                   title="Expand AI Copilot"
                 >
                   <PanelRightOpen className="w-3.5 h-3.5" />
@@ -1223,7 +1223,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
               {onOpenVaultNote && (
                 <button
                   onClick={() => onOpenVaultNote(aiScanSuccessNote)}
-                  className="underline text-cyan-300 font-bold hover:text-cyan-200"
+                  className="underline text-[#D4FF00] font-bold hover:text-white"
                 >
                   OPEN NOTE
                 </button>
@@ -1262,7 +1262,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                 <p>Select a file from the Project Tree on the left or launch Workspaces Hub.</p>
                 <button
                   onClick={() => setViewMode('welcome-hub')}
-                  className="px-3 py-1.5 rounded bg-space-800 hover:bg-space-700 text-cyan-300 border border-slate-700 text-xs"
+                  className="px-3 py-1.5 rounded bg-[#1F242D] hover:bg-[#2A313D] text-[#D4FF00] border border-slate-700 text-xs"
                 >
                   OPEN WORKSPACES HUB
                 </button>
@@ -1271,9 +1271,9 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
           </div>
 
           {/* Collapsible Multi-Tab Tactical Terminal */}
-          <div className="border-t border-cyan-500/20 bg-space-900/95 font-mono text-xs flex flex-col shrink-0">
+          <div className="border-t border-white/[0.08] bg-[#12151B]/95 font-mono text-xs flex flex-col shrink-0">
             {/* Terminal Tab Bar Header */}
-            <div className="h-9 px-3 bg-space-950 flex items-center justify-between border-b border-slate-800 select-none">
+            <div className="h-9 px-3 bg-[#0B0D10] flex items-center justify-between border-b border-slate-800 select-none">
               <div className="flex items-center space-x-2">
                 <div className="flex items-center space-x-1 mr-2">
                   <Terminal className="w-3.5 h-3.5 text-emerald-400" />
@@ -1282,7 +1282,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                   </span>
                 </div>
 
-                <div className="flex rounded bg-space-900 p-0.5 border border-slate-800">
+                <div className="flex rounded bg-[#12151B] p-0.5 border border-slate-800">
                   <button
                     onClick={() => {
                       setTerminalActiveTab('interactive');
@@ -1290,7 +1290,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                     }}
                     className={`px-2.5 py-0.5 rounded text-[10px] font-bold transition flex items-center space-x-1 ${
                       terminalActiveTab === 'interactive' && isTerminalOpen
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                        ? 'bg-[#D4FF00]/15 text-[#D4FF00] border border-[#D4FF00]/40 shadow-sm'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
@@ -1345,7 +1345,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                       setTerminalLogs('');
                     }
                   }}
-                  className="px-2 py-0.5 rounded bg-space-900 hover:bg-space-800 border border-slate-800 text-[10px] text-slate-400 hover:text-white"
+                  className="px-2 py-0.5 rounded bg-[#12151B] hover:bg-[#1F242D] border border-slate-800 text-[10px] text-slate-400 hover:text-white"
                   title="Clear Terminal Tab Output"
                 >
                   CLEAR
@@ -1361,12 +1361,12 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
             </div>
 
             {isTerminalOpen && (
-              <div className="h-56 flex flex-col overflow-hidden bg-space-950">
+              <div className="h-56 flex flex-col overflow-hidden bg-[#0B0D10]">
                 {/* TAB 1: Interactive PowerShell Terminal */}
                 {terminalActiveTab === 'interactive' && (
                   <div className="flex-1 flex flex-col overflow-hidden">
                     {/* Quick Command Chips */}
-                    <div className="px-3 py-1.5 bg-space-900/60 border-b border-slate-800/80 flex items-center space-x-1.5 overflow-x-auto shrink-0">
+                    <div className="px-3 py-1.5 bg-[#12151B]/60 border-b border-slate-800/80 flex items-center space-x-1.5 overflow-x-auto shrink-0">
                       <span className="text-[9px] text-slate-500 font-bold uppercase">CHIPS:</span>
                       {[
                         { label: '🚀 npm run dev', cmd: 'npm run dev' },
@@ -1379,7 +1379,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                           key={idx}
                           onClick={() => handleRunInteractiveCommand(chip.cmd)}
                           disabled={isInteractiveExecuting}
-                          className="px-2 py-0.5 rounded bg-space-800 hover:bg-space-700 text-slate-300 hover:text-cyan-300 border border-slate-700/50 text-[10px] whitespace-nowrap transition disabled:opacity-50"
+                          className="px-2 py-0.5 rounded bg-[#1F242D] hover:bg-[#2A313D] text-slate-300 hover:text-[#D4FF00] border border-slate-700/50 text-[10px] whitespace-nowrap transition disabled:opacity-50"
                         >
                           {chip.label}
                         </button>
@@ -1390,13 +1390,13 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                     <div className="flex-1 overflow-y-auto p-3 space-y-3 font-mono text-xs select-text">
                       {interactiveHistory.length === 0 ? (
                         <div className="text-slate-600 text-xs py-2">
-                          Zak_OS PowerShell interactive prompt ready in <code className="text-cyan-400">{currentProject.path}</code>. Type a command below or click a quick action chip.
+                          Zak_OS PowerShell interactive prompt ready in <code className="text-[#D4FF00]">{currentProject.path}</code>. Type a command below or click a quick action chip.
                         </div>
                       ) : (
                         interactiveHistory.map((item) => (
-                          <div key={item.id} className="space-y-1 bg-space-900/40 p-2.5 rounded-lg border border-slate-800/80">
+                          <div key={item.id} className="space-y-1 bg-[#12151B]/40 p-2.5 rounded-lg border border-slate-800/80">
                             <div className="flex items-center justify-between text-slate-400 text-[11px]">
-                              <div className="flex items-center space-x-1.5 text-cyan-300 font-bold truncate">
+                              <div className="flex items-center space-x-1.5 text-[#D4FF00] font-bold truncate">
                                 <span className="text-blue-400">PS&gt;</span>
                                 <span className="text-emerald-300">{item.command}</span>
                               </div>
@@ -1432,14 +1432,14 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                             </div>
 
                             {item.isExecuting ? (
-                              <div className="flex items-center space-x-2 text-cyan-400 animate-pulse pt-1 text-[11px]">
+                              <div className="flex items-center space-x-2 text-[#D4FF00] animate-pulse pt-1 text-[11px]">
                                 <RefreshCw className="w-3 h-3 animate-spin" />
                                 <span>Executing in project directory...</span>
                               </div>
                             ) : item.result ? (
                               <div className="mt-1 space-y-1">
                                 {item.result.stdout && (
-                                  <pre className="text-slate-200 whitespace-pre-wrap font-mono leading-relaxed bg-space-950 p-2 rounded border border-slate-900 overflow-x-auto text-[11px]">
+                                  <pre className="text-slate-200 whitespace-pre-wrap font-mono leading-relaxed bg-[#0B0D10] p-2 rounded border border-slate-900 overflow-x-auto text-[11px]">
                                     {item.result.stdout}
                                   </pre>
                                 )}
@@ -1457,7 +1457,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                     </div>
 
                     {/* Interactive Input Bar */}
-                    <div className="p-2.5 bg-space-900 border-t border-cyan-500/20 shrink-0">
+                    <div className="p-2.5 bg-[#12151B] border-t border-white/[0.08] shrink-0">
                       <form
                         onSubmit={(e) => {
                           e.preventDefault();
@@ -1465,7 +1465,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                         }}
                         className="flex items-center space-x-2"
                       >
-                        <div className="flex items-center space-x-1 text-cyan-400 font-bold px-2 py-1.5 bg-space-950 rounded-l-lg border border-r-0 border-slate-800 shrink-0 text-[11px]">
+                        <div className="flex items-center space-x-1 text-[#D4FF00] font-bold px-2 py-1.5 bg-[#0B0D10] rounded-l-lg border border-r-0 border-slate-800 shrink-0 text-[11px]">
                           <span className="text-blue-400">PS</span>
                           <span className="text-slate-500 max-w-[140px] truncate">{currentProject.title}&gt;</span>
                         </div>
@@ -1478,13 +1478,13 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                           onKeyDown={handleInteractiveKeyDown}
                           placeholder="Type PowerShell directive (e.g. npm run dev:server, dir)..."
                           disabled={isInteractiveExecuting}
-                          className="flex-1 bg-space-950 border border-slate-800 rounded-r-lg px-3 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-400 placeholder-slate-600"
+                          className="flex-1 bg-[#0B0D10] border border-slate-800 rounded-r-lg px-3 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-[#D4FF00] placeholder-slate-600"
                         />
 
                         <button
                           type="submit"
                           disabled={isInteractiveExecuting || !interactiveCmdInput.trim()}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold flex items-center space-x-1 text-xs transition shadow-glow-cyan shrink-0"
+                          className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold flex items-center space-x-1 text-xs transition shadow-md shrink-0"
                         >
                           <Play className="w-3 h-3 fill-black" />
                           <span>RUN</span>
@@ -1525,7 +1525,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                     )}
 
                     {isRunningCode && (
-                      <div className="flex items-center space-x-2 text-cyan-400 animate-pulse pt-1">
+                      <div className="flex items-center space-x-2 text-[#D4FF00] animate-pulse pt-1">
                         <Sparkles className="w-3.5 h-3.5 animate-spin" />
                         <span>Executing script in project directory...</span>
                       </div>
@@ -1551,18 +1551,18 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                         {activeServers.map((srv) => (
                           <div
                             key={srv.pid}
-                            className="p-3 rounded-lg bg-space-900 border border-emerald-500/30 flex flex-col justify-between space-y-2"
+                            className="p-3 rounded-lg bg-[#12151B] border border-emerald-500/30 flex flex-col justify-between space-y-2"
                           >
                             <div className="flex items-start justify-between">
                               <div>
                                 <div className="flex items-center gap-1.5">
                                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                                   <span className="font-bold text-white text-xs">{srv.name || 'Server'}</span>
-                                  <span className="px-1 py-0.2 rounded bg-space-950 border border-slate-800 text-slate-400 text-[9px]">
+                                  <span className="px-1 py-0.2 rounded bg-[#0B0D10] border border-slate-800 text-slate-400 text-[9px]">
                                     PID {srv.pid}
                                   </span>
                                 </div>
-                                <code className="text-[10px] text-cyan-300 mt-1 block truncate">
+                                <code className="text-[10px] text-[#D4FF00] mt-1 block truncate">
                                   {srv.command}
                                 </code>
                               </div>
@@ -1603,9 +1603,9 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
       {/* COLUMN 3: ARCHITECT-02 AI Copilot Sidecar (Collapsible Right) */}
       {!isZenMode && (
         isRightCopilotOpen ? (
-          <div className="w-80 lg:w-96 h-full bg-space-900 border-l border-cyan-500/20 flex flex-col justify-between shrink-0 font-mono text-xs transition-all duration-200">
+          <div className="w-80 lg:w-96 h-full bg-[#12151B] border-l border-white/[0.08] flex flex-col justify-between shrink-0 font-mono text-xs transition-all duration-200">
             {/* Copilot Header */}
-            <div className="p-3 border-b border-cyan-500/20 bg-space-950 flex flex-col space-y-2">
+            <div className="p-3 border-b border-white/[0.08] bg-[#0B0D10] flex flex-col space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Bot className="w-4 h-4 text-blue-400 animate-pulse" />
@@ -1620,7 +1620,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                     className={`px-1.5 py-0.5 rounded text-[9px] font-bold border transition ${
                       isAutonomousMode
                         ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                        : 'bg-space-900 border-slate-800 text-slate-500'
+                        : 'bg-[#12151B] border-slate-800 text-slate-500'
                     }`}
                     title="Autonomous Mode: Auto-execute commands and server starts"
                   >
@@ -1629,7 +1629,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
 
                   <button
                     onClick={() => setIsRightCopilotOpen(false)}
-                    className="p-1 rounded hover:bg-space-800 text-slate-400 hover:text-white"
+                    className="p-1 rounded hover:bg-[#1F242D] text-slate-400 hover:text-white"
                     title="Collapse Copilot"
                   >
                     <PanelRightClose className="w-3.5 h-3.5" />
@@ -1642,7 +1642,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                 <select
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
-                  className="flex-1 bg-space-900 border border-slate-700 rounded px-2 py-1 text-[10px] text-cyan-300 focus:outline-none truncate"
+                  className="flex-1 bg-[#12151B] border border-slate-700 rounded px-2 py-1 text-[10px] text-[#D4FF00] focus:outline-none truncate"
                 >
                   <optgroup label="Google AI (Cloud)">
                     <option value="gemini-3.7-flash">Gemini 3.7 Flash (Reasoning)</option>
@@ -1660,7 +1660,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                 <select
                   value={routingMode}
                   onChange={(e) => setRoutingMode(e.target.value as RoutingMode)}
-                  className="bg-space-900 border border-cyan-500/30 rounded px-1.5 py-1 text-[9px] text-amber-300 font-bold focus:outline-none"
+                  className="bg-[#12151B] border border-white/[0.12] rounded px-1.5 py-1 text-[9px] text-amber-300 font-bold focus:outline-none"
                   title="Router Strategy: Hybrid (Cloud with Local Fallback), Cloud Only, or Local Only"
                 >
                   <option value="hybrid_fallback">⚡ Hybrid</option>
@@ -1669,8 +1669,8 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                 </select>
               </div>
 
-              <div className="p-1.5 rounded bg-space-900 border border-cyan-500/30 flex items-center justify-between text-[10px]">
-                <div className="flex items-center space-x-1.5 truncate text-cyan-400">
+              <div className="p-1.5 rounded bg-[#12151B] border border-white/[0.12] flex items-center justify-between text-[10px]">
+                <div className="flex items-center space-x-1.5 truncate text-[#D4FF00]">
                   <Zap className="w-3 h-3 text-amber-400 shrink-0" />
                   <span className="truncate font-bold">
                     {activeTab ? `CONTEXT: ${activeTab.name}` : `WORKSPACE: ${currentProject.title}`}
@@ -1685,7 +1685,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
             {/* Copilot Chat Message Stream */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3 font-mono text-xs">
               {copilotMessages.length === 0 ? (
-                <div className="p-4 rounded-xl bg-space-950/70 border border-slate-800 text-slate-400 space-y-2">
+                <div className="p-4 rounded-xl bg-[#0B0D10]/70 border border-slate-800 text-slate-400 space-y-2">
                   <div className="font-bold text-slate-200 flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-blue-400" />
                     <span>Autonomous ARCHITECT-02</span>
@@ -1706,8 +1706,8 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                       key={msg.id}
                       className={`p-3 rounded-xl ${
                         isUser
-                          ? 'bg-cyan-950/40 border border-cyan-500/30 text-cyan-100'
-                          : 'bg-space-950 border border-slate-800 text-slate-200'
+                          ? 'bg-white/5 border border-white/[0.12] text-white'
+                          : 'bg-[#0B0D10] border border-slate-800 text-slate-200'
                       }`}
                     >
                       <div className="text-[9px] text-slate-500 mb-1 flex items-center justify-between">
@@ -1723,7 +1723,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                       </div>
 
                       <div
-                        className="prose prose-invert max-w-none text-xs leading-relaxed prose-pre:bg-space-900 prose-pre:border prose-pre:border-slate-800"
+                        className="prose prose-invert max-w-none text-xs leading-relaxed prose-pre:bg-[#12151B] prose-pre:border prose-pre:border-slate-800"
                         dangerouslySetInnerHTML={{
                           __html: marked.parse(msg.content, { async: false }) as string,
                         }}
@@ -1734,7 +1734,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                           {msg.content.includes('```') && (
                             <button
                               onClick={() => handleApplyCodeToEditor(msg.content)}
-                              className="flex items-center space-x-1 px-2.5 py-1 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold transition shadow-sm"
+                              className="flex items-center space-x-1 px-2.5 py-1 rounded bg-[#D4FF00]/15 hover:bg-[#D4FF00]/30 text-[#D4FF00] border border-[#D4FF00]/40 text-[10px] font-bold transition shadow-sm"
                               title="Inject code directly into Monaco editor"
                             >
                               <Zap className="w-3 h-3 text-amber-400" />
@@ -1763,7 +1763,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
               )}
 
               {isCopilotStreaming && (
-                <div className="flex items-center space-x-2 text-cyan-400 text-[11px] animate-pulse">
+                <div className="flex items-center space-x-2 text-[#D4FF00] text-[11px] animate-pulse">
                   <Sparkles className="w-3.5 h-3.5 animate-spin" />
                   <span>Architect is reasoning and planning actions...</span>
                 </div>
@@ -1773,7 +1773,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
             </div>
 
             {/* Quick Action Chips */}
-            <div className="p-2 bg-space-950 border-t border-slate-800 overflow-x-auto flex items-center space-x-1.5 shrink-0">
+            <div className="p-2 bg-[#0B0D10] border-t border-slate-800 overflow-x-auto flex items-center space-x-1.5 shrink-0">
               {[
                 { label: '🚀 Install & Run Server', prompt: 'Install dependencies for this project and start the local web server on the first open port please.' },
                 { label: 'Refactor Code', prompt: 'Refactor and optimize the active file for performance and clean architecture.' },
@@ -1784,7 +1784,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                   key={i}
                   onClick={() => handleSendCopilot(action.prompt)}
                   disabled={isCopilotStreaming}
-                  className="px-2 py-0.5 rounded bg-space-900 hover:bg-space-800 border border-slate-800 hover:border-cyan-500/40 text-[10px] text-slate-300 whitespace-nowrap transition"
+                  className="px-2 py-0.5 rounded bg-[#12151B] hover:bg-[#1F242D] border border-slate-800 hover:border-[#D4FF00]/40 text-[10px] text-slate-300 whitespace-nowrap transition"
                 >
                   {action.label}
                 </button>
@@ -1792,7 +1792,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
             </div>
 
             {/* Copilot Input */}
-            <div className="p-3 bg-space-950 border-t border-cyan-500/20 shrink-0">
+            <div className="p-3 bg-[#0B0D10] border-t border-white/[0.08] shrink-0">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -1806,12 +1806,12 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                   onChange={(e) => setCopilotInput(e.target.value)}
                   placeholder="Instruct Autonomous Architect..."
                   disabled={isCopilotStreaming}
-                  className="flex-1 bg-space-900 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-400 placeholder-slate-600"
+                  className="flex-1 bg-[#12151B] border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-[#D4FF00] placeholder-slate-600"
                 />
                 <button
                   type="submit"
                   disabled={isCopilotStreaming || !copilotInput.trim()}
-                  className="p-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-black font-bold transition shadow-glow-cyan"
+                  className="p-2 rounded-lg bg-[#D4FF00] hover:bg-[#c6f500] disabled:opacity-50 text-black font-bold transition shadow-md"
                 >
                   <Send className="w-3.5 h-3.5" />
                 </button>
@@ -1820,10 +1820,10 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
           </div>
         ) : (
           /* Right Collapsed Micro-Rail */
-          <div className="w-10 h-full bg-space-900 border-l border-cyan-500/20 flex flex-col items-center py-2 space-y-3 shrink-0">
+          <div className="w-10 h-full bg-[#12151B] border-l border-white/[0.08] flex flex-col items-center py-2 space-y-3 shrink-0">
             <button
               onClick={() => setIsRightCopilotOpen(true)}
-              className="p-2 rounded hover:bg-space-800 text-blue-400 hover:text-blue-300"
+              className="p-2 rounded hover:bg-[#1F242D] text-blue-400 hover:text-blue-300"
               title="Expand AI Copilot"
             >
               <PanelRightOpen className="w-4 h-4" />
@@ -1835,10 +1835,10 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
       {/* Modal 1: Open System Folder */}
       {isOpenFolderModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-lg bg-space-900 border border-cyan-500/40 rounded-xl p-6 shadow-glass-glow space-y-4 font-mono text-xs">
+          <div className="w-full max-w-lg bg-[#12151B] border border-[#D4FF00]/40 rounded-xl p-6 shadow-glass-glow space-y-4 font-mono text-xs">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
-                <FolderPlus className="w-5 h-5 text-cyan-400" />
+                <FolderPlus className="w-5 h-5 text-[#D4FF00]" />
                 <h2 className="font-display font-bold text-base text-white">
                   OPEN SYSTEM FOLDER AS WORKSPACE
                 </h2>
@@ -1858,7 +1858,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                   value={customFolderPath}
                   onChange={(e) => setCustomFolderPath(e.target.value)}
                   placeholder="e.g. C:\Users\Zakar\Documents\Web_Dev\MyProject"
-                  className="w-full bg-space-950 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-[#0B0D10] border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-[#D4FF00]"
                 />
               </div>
 
@@ -1870,7 +1870,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                     value={customProjectName}
                     onChange={(e) => setCustomProjectName(e.target.value)}
                     placeholder="My Project"
-                    className="w-full bg-space-950 border border-slate-700 rounded-lg p-2 text-slate-100 focus:outline-none focus:border-cyan-400"
+                    className="w-full bg-[#0B0D10] border border-slate-700 rounded-lg p-2 text-slate-100 focus:outline-none focus:border-[#D4FF00]"
                   />
                 </div>
                 <div>
@@ -1880,17 +1880,17 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                     value={customCategory}
                     onChange={(e) => setCustomCategory(e.target.value)}
                     placeholder="Web_Dev / Security / Tools"
-                    className="w-full bg-space-950 border border-slate-700 rounded-lg p-2 text-slate-100 focus:outline-none focus:border-cyan-400"
+                    className="w-full bg-[#0B0D10] border border-slate-700 rounded-lg p-2 text-slate-100 focus:outline-none focus:border-[#D4FF00]"
                   />
                 </div>
               </div>
 
-              <label className="flex items-center space-x-2 p-2.5 rounded bg-space-950 border border-slate-800 cursor-pointer">
+              <label className="flex items-center space-x-2 p-2.5 rounded bg-[#0B0D10] border border-slate-800 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={autoScanOnAdd}
                   onChange={(e) => setAutoScanOnAdd(e.target.checked)}
-                  className="accent-cyan-400"
+                  className="accent-[#D4FF00]"
                 />
                 <span className="text-slate-300 text-[11px]">
                   🤖 <strong>Auto-Scan with Gemini AI:</strong> Generate Obsidian Tier 2 Node and 3D Graph Links.
@@ -1901,13 +1901,13 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsOpenFolderModalOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-space-800 text-slate-300 hover:bg-space-700"
+                  className="px-4 py-2 rounded-lg bg-[#1F242D] text-slate-300 hover:bg-[#2A313D]"
                 >
                   CANCEL
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold shadow-glow-cyan"
+                  className="px-4 py-2 rounded-lg bg-[#D4FF00] hover:bg-[#c6f500] text-black font-bold shadow-md"
                 >
                   MOUNT WORKSPACE
                 </button>
@@ -1920,7 +1920,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
       {/* Modal 2: Create New Project in Vault */}
       {isNewProjectModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-space-900 border border-cyan-500/40 rounded-xl p-6 shadow-glass-glow space-y-4 font-mono text-xs">
+          <div className="w-full max-w-md bg-[#12151B] border border-[#D4FF00]/40 rounded-xl p-6 shadow-glass-glow space-y-4 font-mono text-xs">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
                 <Plus className="w-5 h-5 text-amber-400" />
@@ -1943,7 +1943,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                   value={newVaultProjName}
                   onChange={(e) => setNewVaultProjName(e.target.value)}
                   placeholder="e.g. Discord_Security_Bot"
-                  className="w-full bg-space-950 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-[#0B0D10] border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-[#D4FF00]"
                 />
               </div>
 
@@ -1952,7 +1952,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                 <select
                   value={newVaultProjLang}
                   onChange={(e) => setNewVaultProjLang(e.target.value)}
-                  className="w-full bg-space-950 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-[#0B0D10] border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-[#D4FF00]"
                 >
                   <option value="Python">Python (AsyncIO / Scripting)</option>
                   <option value="TypeScript">TypeScript (Node / Next.js)</option>
@@ -1962,7 +1962,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                 </select>
               </div>
 
-              <div className="p-2.5 rounded bg-space-950 text-slate-400 text-[10px]">
+              <div className="p-2.5 rounded bg-[#0B0D10] text-slate-400 text-[10px]">
                 📁 Creates folder in: <code>02 Coding Projects/{newVaultProjLang}/{newVaultProjName || '...'}</code>
               </div>
 
@@ -1970,13 +1970,13 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsNewProjectModalOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-space-800 text-slate-300"
+                  className="px-4 py-2 rounded-lg bg-[#1F242D] text-slate-300"
                 >
                   CANCEL
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold shadow-glow-cyan"
+                  className="px-4 py-2 rounded-lg bg-[#D4FF00] hover:bg-[#c6f500] text-black font-bold shadow-md"
                 >
                   CREATE & INITIALIZE
                 </button>
@@ -1989,7 +1989,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
       {/* Modal 3: New File / Folder inside active tree */}
       {isCreateItemModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-sm bg-space-900 border border-cyan-500/40 rounded-xl p-5 shadow-glass-glow space-y-3 font-mono text-xs">
+          <div className="w-full max-w-sm bg-[#12151B] border border-[#D4FF00]/40 rounded-xl p-5 shadow-glass-glow space-y-3 font-mono text-xs">
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
               <span className="font-bold text-white uppercase">
                 CREATE NEW {createItemType.toUpperCase()}
@@ -2009,7 +2009,7 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                   value={newItemName}
                   onChange={(e) => setNewItemName(e.target.value)}
                   placeholder={createItemType === 'file' ? 'module.py' : 'subfolder'}
-                  className="w-full bg-space-950 border border-slate-700 rounded p-2 text-slate-100 focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-[#0B0D10] border border-slate-700 rounded p-2 text-slate-100 focus:outline-none focus:border-[#D4FF00]"
                 />
               </div>
 
@@ -2017,13 +2017,13 @@ export const IdeWorkspace: React.FC<IdeWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsCreateItemModalOpen(false)}
-                  className="px-3 py-1.5 rounded bg-space-800 text-slate-300"
+                  className="px-3 py-1.5 rounded bg-[#1F242D] text-slate-300"
                 >
                   CANCEL
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-bold"
+                  className="px-3 py-1.5 rounded bg-[#D4FF00] hover:bg-[#c6f500] text-black font-bold"
                 >
                   CREATE
                 </button>

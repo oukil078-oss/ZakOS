@@ -12,6 +12,10 @@ import { AboutOperatorView } from './components/profile/AboutOperatorView';
 import { TacticalTerminalView } from './components/terminal/TacticalTerminalView';
 import { CommandPalette } from './components/commands/CommandPalette';
 import { GitHubWorkspaceView } from './components/github/GitHubWorkspaceView';
+import { AgentCollectiveView } from './components/hermes/AgentCollectiveView';
+import { CronScheduleView } from './components/schedule/CronScheduleView';
+import { AgentContentLibraryView } from './components/content/AgentContentLibraryView';
+import { ForgeFleetView } from './components/forge/ForgeFleetView';
 import { api } from './services/api';
 import { useVaultSync } from './hooks/useVaultSync';
 import { 
@@ -46,6 +50,7 @@ export const App: React.FC = () => {
   const [selectedNotePath, setSelectedNotePath] = useState<string | null>(null);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('pentest');
+  const [agentSubTab, setAgentSubTab] = useState<'collective' | 'chat'>('collective');
   
   // Available Projects & AI Models for IDE
   const [availableProjects, setAvailableProjects] = useState<ProjectInfo[]>([]);
@@ -90,7 +95,10 @@ export const App: React.FC = () => {
       setProjects(projList);
       setAvailableProjects(projFullList);
       if (projFullList.length > 0 && !currentIdeProject) {
-        setCurrentIdeProject(projFullList[0]);
+        const zakOsProject = projFullList.find(
+          (p) => p.name.toLowerCase() === 'zak_os' || p.id.includes('zak_os')
+        );
+        setCurrentIdeProject(zakOsProject || projFullList[0]);
       }
       setModels(modelList);
 
@@ -379,12 +387,68 @@ ${content}
           />
         )}
 
-        {/* Module 4: Jarvis Multi-Agent Hierarchy Crew */}
+        {/* Module 4: Jarvis Multi-Agent Hierarchy & Hermes Subagent Collective */}
         {activeTab === 'agents' && (
-          <AgentChat
-            initialAgentId={selectedAgentId}
-            onSaveToVaultNote={handleSaveAgentOutputToNote}
-          />
+          <div className="space-y-6">
+            {/* Sub-tab switcher between The Collective Dashboard and Direct Chat */}
+            <div className="flex items-center justify-between p-2 rounded-2xl bg-white/60 dark:bg-[#12151B]/70 border border-black/[0.08] dark:border-white/[0.08] backdrop-blur-md">
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setAgentSubTab('collective')}
+                  className={`px-4 py-1.5 rounded-xl font-mono text-xs font-bold uppercase transition ${
+                    agentSubTab === 'collective'
+                      ? 'bg-black dark:bg-white text-white dark:text-black shadow-sm'
+                      : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  The Collective (Swarm Dashboard)
+                </button>
+                <button
+                  onClick={() => setAgentSubTab('chat')}
+                  className={`px-4 py-1.5 rounded-xl font-mono text-xs font-bold uppercase transition ${
+                    agentSubTab === 'chat'
+                      ? 'bg-black dark:bg-white text-white dark:text-black shadow-sm'
+                      : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  Interactive Directive Chat
+                </button>
+              </div>
+
+              <span className="text-[10px] font-mono text-[#5EE2B5] font-bold px-3 hidden sm:inline-block">
+                ● 5 AGENTS SYNCHRONIZED
+              </span>
+            </div>
+
+            {agentSubTab === 'collective' ? (
+              <AgentCollectiveView
+                onOpenAgentChat={(agentId) => {
+                  setSelectedAgentId(agentId);
+                  setAgentSubTab('chat');
+                }}
+              />
+            ) : (
+              <AgentChat
+                initialAgentId={selectedAgentId}
+                onSaveToVaultNote={handleSaveAgentOutputToNote}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Module 4b: Hermes Cron Operations & Timeline */}
+        {activeTab === 'schedule' && (
+          <CronScheduleView />
+        )}
+
+        {/* Module 4c: Agent Content & Deliverables Library */}
+        {activeTab === 'content' && (
+          <AgentContentLibraryView />
+        )}
+
+        {/* Module 4d: Autonomous JobHunter / Forge Fleet */}
+        {activeTab === 'fleet' && (
+          <ForgeFleetView />
         )}
 
         {/* Module 5: Pentesting Lab Command Matrix */}

@@ -107,7 +107,22 @@ export class ProjectService {
     const projects: ProjectInfo[] = [];
     const config = this.readConfig();
 
-    // 1. Scan Obsidian Vault 02 Coding Projects
+    // 1. Prioritize Zak_OS System Source Workspace (Top Priority)
+    const zakOsPath = path.resolve(process.cwd());
+    projects.push({
+      id: 'local-zak_os-source',
+      name: 'Zak_OS',
+      title: 'Zak_OS System Source',
+      path: zakOsPath,
+      category: 'Web Dev & OS',
+      type: 'external',
+      description: 'Zak_OS Fullstack Second Brain Operating System codebase',
+      language: 'typescript',
+      mainFile: 'src/App.tsx',
+      vaultNotePath: '02 Coding Projects/Web Dev/Zak_OS.md',
+    });
+
+    // 2. Scan Obsidian Vault 02 Coding Projects
     if (fs.existsSync(this.defaultProjectsDir)) {
       try {
         const categories = fs.readdirSync(this.defaultProjectsDir, { withFileTypes: true });
@@ -238,21 +253,7 @@ if __name__ == '__main__':
       });
     }
 
-    // 3. Add Zak_OS Local Workspace
-    projects.push({
-      id: 'local-zak_os-source',
-      name: 'Zak_OS',
-      title: 'Zak_OS System Source',
-      path: path.resolve(process.cwd()),
-      category: 'Web Dev & OS',
-      type: 'external',
-      description: 'Zak_OS Fullstack Second Brain Operating System codebase',
-      language: 'typescript',
-      mainFile: 'package.json',
-      vaultNotePath: '02 Coding Projects/Web Dev/Zak_OS.md',
-    });
-
-    // 4. Merge stored custom system workspaces (deduplicating by path)
+    // 3. Merge stored custom system workspaces (deduplicating by path)
     for (const cw of config.customWorkspaces) {
       if (fs.existsSync(cw.path) && !projects.some((p) => path.resolve(p.path) === path.resolve(cw.path))) {
         projects.push(cw);

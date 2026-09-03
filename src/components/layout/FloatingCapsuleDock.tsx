@@ -12,7 +12,10 @@ import {
   Search, 
   Moon, 
   Sun,
-  Activity
+  Activity,
+  Calendar as CalendarIcon,
+  BookOpen,
+  Zap
 } from 'lucide-react';
 import { SystemTabId } from '../../types';
 import LiquidGlassWebGL from '../ui/LiquidGlassWebGL';
@@ -42,6 +45,9 @@ export const FloatingCapsuleDock: React.FC<FloatingCapsuleDockProps> = ({
     { id: 'github', label: 'GitHub Cloud', icon: FolderGit2, badge: 'Portfolio' },
     { id: 'galaxy', label: 'Second Brain', icon: Orbit, badge: `${totalNotes}` },
     { id: 'agents', label: 'Jarvis Crew', icon: Bot },
+    { id: 'schedule', label: 'Cron Ops', icon: CalendarIcon },
+    { id: 'content', label: 'Docs Hub', icon: BookOpen },
+    { id: 'fleet', label: 'JobHunter', icon: Zap, badge: 'Fleet' },
     { id: 'pentest', label: 'Pentest Lab', icon: Crosshair },
     { id: 'ide', label: 'Live IDE', icon: Code2 },
     { id: 'voice', label: 'Voice AI', icon: Mic, badge: 'SOON' },

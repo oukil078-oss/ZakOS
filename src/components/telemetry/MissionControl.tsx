@@ -29,6 +29,7 @@ import {
   Star
 } from 'lucide-react';
 import { TelemetryStats, ProjectKanbanItem, NoteItem, GraphData, GitHubRepo } from '../../types';
+import HermesRadarWidget from '../hermes/HermesRadarWidget';
 import { NeuralBrainGalaxy } from '../galaxy/NeuralBrainGalaxy';
 
 interface MissionControlProps {
@@ -247,6 +248,9 @@ export const MissionControl: React.FC<MissionControlProps> = ({
           </p>
         </div>
       </div>
+
+      {/* 🛰️ HERMES MISSION CONTROL: 360° RADAR TELEMETRY & OS GAUGES */}
+      <HermesRadarWidget />
 
       {/* 🌌 HERO SECTION: 3D LIVING SECOND BRAIN GALAXY */}
       {graphData && (
