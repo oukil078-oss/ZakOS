@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Production Build
+dist/
+dist-ssr/
+build/
+*.local
+
+# Cache & Temporary Files
+.eslintcache
+temp_sandbox/
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# IDE & Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS & System
+.DS_Store
+Thumbs.db
+
+# Agent & Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.system_generated/

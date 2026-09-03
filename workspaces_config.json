@@ -1,0 +1,37 @@
+{
+  "customWorkspaces": [
+    {
+      "id": "ext-1787864798630-consulat_algerie_jeddah",
+      "name": "Consulat-Algerie-Jeddah",
+      "title": "Consulat-Algerie-Jeddah",
+      "path": "E:\\WebDev\\Consulat-Algerie-Jeddah",
+      "category": "Web_Dev",
+      "type": "external",
+      "description": "Workspace at E:\\WebDev\\Consulat-Algerie-Jeddah",
+      "language": "typescript",
+      "mainFile": "package.json",
+      "fileCount": 10,
+      "lastOpened": "2026-08-27T21:06:38.631Z",
+      "vaultNotePath": "02 Coding Projects/Web_Dev/Consulat-Algerie-Jeddah.md"
+    },
+    {
+      "id": "ext-1787861605742-zak_os_fullstack",
+      "name": "Zak_OS_Fullstack",
+      "title": "Zak OS Fullstack",
+      "path": "C:\\Users\\Zakar\\Documents\\Web_Dev\\Zak_OS",
+      "category": "Web_Dev",
+      "type": "external",
+      "description": "Workspace at C:\\Users\\Zakar\\Documents\\Web_Dev\\Zak_OS",
+      "language": "typescript",
+      "mainFile": "package-lock.json",
+      "fileCount": 15,
+      "lastOpened": "2026-08-27T20:13:25.742Z",
+      "vaultNotePath": "02 Coding Projects/Web_Dev/Zak_OS_Fullstack.md"
+    }
+  ],
+  "ideState": {
+    "lastActiveProjectId": "",
+    "openTabs": [],
+    "activeTabPath": ""
+  }
+}

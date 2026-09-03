@@ -1,0 +1,1 @@
+// DynamicIslandHeader placeholder
