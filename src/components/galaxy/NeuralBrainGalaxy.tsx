@@ -14,9 +14,23 @@ import {
   FileText,
   Zap,
   Eye,
-  Sliders
+  Sliders,
+  Plus,
+  Minus,
+  ZoomIn,
+  ZoomOut
 } from 'lucide-react';
 import { GraphData, GraphNode, NoteItem } from '../../types';
+
+interface NeuralSignal {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  progress: number;
+  speed: number;
+  color: string;
+  size: number;
+}
 
 interface NeuralBrainGalaxyProps {
   graphData: GraphData;
@@ -94,6 +108,7 @@ export const NeuralBrainGalaxy: React.FC<NeuralBrainGalaxyProps> = ({
   // Starfield & Simulation Refs
   const simNodesRef = useRef<SimGalaxyNode[]>([]);
   const starfieldRef = useRef<SimParticle[]>([]);
+  const signalsRef = useRef<NeuralSignal[]>([]);
   const animationFrameRef = useRef<number | null>(null);
 
   const branchColorMap: Record<string, string> = {
@@ -168,6 +183,33 @@ export const NeuralBrainGalaxy: React.FC<NeuralBrainGalaxyProps> = ({
       });
 
       simNodesRef.current = nodes;
+
+      // Initialize living synaptic neural signals traveling along wikilinks
+      if (graphData.links && graphData.links.length > 0) {
+        const sigs: NeuralSignal[] = [];
+        const links = graphData.links;
+        const totalSignals = Math.min(80, Math.max(35, links.length * 2));
+
+        for (let i = 0; i < totalSignals; i++) {
+          const link = links[i % links.length];
+          const sId = typeof link.source === 'string' ? link.source : (link.source as any).id;
+          const tId = typeof link.target === 'string' ? link.target : (link.target as any).id;
+
+          const srcNode = nodes.find((n) => n.id === sId);
+          const col = srcNode ? srcNode.branchColor : '#D4FF00';
+
+          sigs.push({
+            id: `sig-${i}`,
+            sourceId: sId,
+            targetId: tId,
+            progress: Math.random(), // Staggered initial locations
+            speed: 0.003 + Math.random() * 0.006,
+            color: col,
+            size: Math.random() * 2 + 2,
+          });
+        }
+        signalsRef.current = sigs;
+      }
     }
   }, [graphData]);
 
@@ -331,6 +373,51 @@ export const NeuralBrainGalaxy: React.FC<NeuralBrainGalaxyProps> = ({
             ctx.moveTo(p1.sx, p1.sy);
             ctx.lineTo(p2.sx, p2.sy);
             ctx.stroke();
+          }
+        });
+      }
+
+      // 4b. Render Living Synaptic Signals Travelling Across Linked Notes
+      if (signalsRef.current.length > 0) {
+        signalsRef.current.forEach((sig) => {
+          sig.progress += sig.speed;
+          if (sig.progress >= 1) {
+            sig.progress = 0;
+          }
+
+          const p1 = nodePositionMap.get(sig.sourceId);
+          const p2 = nodePositionMap.get(sig.targetId);
+
+          if (p1 && p2) {
+            // Signal position on 2D screen
+            const sx = p1.sx + (p2.sx - p1.sx) * sig.progress;
+            const sy = p1.sy + (p2.sy - p1.sy) * sig.progress;
+
+            // Comet tail trail
+            const tailProgress = Math.max(0, sig.progress - 0.08);
+            const tx = p1.sx + (p2.sx - p1.sx) * tailProgress;
+            const ty = p1.sy + (p2.sy - p1.sy) * tailProgress;
+
+            const trailGrad = ctx.createLinearGradient(tx, ty, sx, sy);
+            trailGrad.addColorStop(0, 'transparent');
+            trailGrad.addColorStop(1, sig.color);
+
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(sx, sy);
+            ctx.strokeStyle = trailGrad;
+            ctx.lineWidth = sig.size * 1.3;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Glowing Signal Head Pulse
+            ctx.beginPath();
+            ctx.arc(sx, sy, sig.size, 0, Math.PI * 2);
+            ctx.fillStyle = sig.color;
+            ctx.shadowColor = sig.color;
+            ctx.shadowBlur = 12;
+            ctx.fill();
+            ctx.shadowBlur = 0;
           }
         });
       }
@@ -510,6 +597,27 @@ export const NeuralBrainGalaxy: React.FC<NeuralBrainGalaxyProps> = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8 pr-3 py-1.5 text-xs bg-black/60 backdrop-blur-xl border border-white/10 rounded-full text-white placeholder-gray-400 focus:outline-none focus:border-[#D4FF00]"
             />
+          </div>
+
+          {/* Zoom In & Out Controls (+ and -) */}
+          <div className="flex items-center gap-1 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full p-1 shadow-lg">
+            <button
+              onClick={() => setZoom(prev => Math.min(3.5, Math.round((prev + 0.25) * 100) / 100))}
+              className="w-7 h-7 rounded-full flex items-center justify-center font-mono font-black text-sm text-gray-300 hover:text-black hover:bg-[#D4FF00] transition active:scale-90"
+              title="Zoom In (+)"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+            </button>
+            <span className="font-mono text-[10px] text-gray-300 font-extrabold px-1.5 select-none min-w-[38px] text-center">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              onClick={() => setZoom(prev => Math.max(0.4, Math.round((prev - 0.25) * 100) / 100))}
+              className="w-7 h-7 rounded-full flex items-center justify-center font-mono font-black text-sm text-gray-300 hover:text-black hover:bg-[#D4FF00] transition active:scale-90"
+              title="Zoom Out (-)"
+            >
+              <Minus className="w-3.5 h-3.5 stroke-[3]" />
+            </button>
           </div>
 
           <button
