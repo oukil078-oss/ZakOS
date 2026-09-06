@@ -44,6 +44,79 @@ export interface SslCertInfo {
   serialNumber?: string;
 }
 
+export interface SecurityHeaderFinding {
+  header: string;
+  value?: string;
+  status: 'pass' | 'fail' | 'warn';
+  importance: 'critical' | 'high' | 'medium' | 'low';
+  description: string;
+  recommendation: string;
+}
+
+export interface SecurityHeadersAudit {
+  grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
+  score: number;
+  passCount: number;
+  failCount: number;
+  findings: SecurityHeaderFinding[];
+}
+
+export interface DetectedTechnology {
+  name: string;
+  category: 'Web Server' | 'CMS' | 'Frontend' | 'Backend' | 'CDN / WAF' | 'Analytics' | 'Security / Captcha';
+  version?: string;
+  confidence: 'high' | 'medium' | 'low';
+  icon?: string;
+}
+
+export interface EmailSecurityPosture {
+  spf: {
+    record?: string;
+    status: 'hardfail' | 'softfail' | 'neutral' | 'missing' | 'vulnerable';
+    description: string;
+    relayNetworks?: string[];
+  };
+  dmarc: {
+    record?: string;
+    policy?: 'reject' | 'quarantine' | 'none' | 'missing';
+    status: 'strong' | 'moderate' | 'insecure' | 'missing';
+    description: string;
+    ruaMailbox?: string;
+  };
+  caa?: {
+    records: string[];
+    authorizedCas: string[];
+    status: 'enforced' | 'missing';
+  };
+}
+
+export interface SecurityTxtData {
+  exists: boolean;
+  url?: string;
+  contact?: string[];
+  policy?: string;
+  encryption?: string;
+  hiring?: string;
+  acknowledgments?: string;
+  canonical?: string;
+  raw?: string;
+}
+
+export interface RdapData {
+  target: string;
+  handle?: string;
+  name?: string;
+  country?: string;
+  registrar?: string;
+  startAddress?: string;
+  endAddress?: string;
+  created?: string;
+  expires?: string;
+  updated?: string;
+  status?: string[];
+  raw?: any;
+}
+
 export interface OsintReconData {
   root_domain?: string;
   is_ip?: boolean;
@@ -54,6 +127,12 @@ export interface OsintReconData {
   sensitive_files?: SensitiveFileFinding[];
   subdomains_detail?: SubdomainDetail[];
   crawled_pages?: string[];
+  security_headers?: SecurityHeadersAudit;
+  technologies?: DetectedTechnology[];
+  email_security?: EmailSecurityPosture;
+  security_txt?: SecurityTxtData;
+  rdap?: RdapData;
+  ct_subdomains_count?: number;
   dns?: {
     a?: string[];
     mx?: { exchange: string; priority: number }[];
@@ -617,6 +696,610 @@ export class ScraperService {
   /**
    * Enrich ScrapedResult with DNS (A, MX, TXT/SPF, NS), Reverse DNS, Geolocation, SSL Cert, and Robots/Folders
    */
+  /**
+   * 1. Audit HTTP Security Headers & calculate OWASP defense grade
+   */
+  public auditSecurityHeaders(headers: Record<string, string> = {}): SecurityHeadersAudit {
+    const findings: SecurityHeaderFinding[] = [];
+    const normalized: Record<string, string> = {};
+    for (const [k, v] of Object.entries(headers || {})) {
+      normalized[k.toLowerCase()] = v;
+    }
+
+    let passCount = 0;
+    let failCount = 0;
+    let score = 100;
+
+    // Content-Security-Policy
+    const csp = normalized['content-security-policy'];
+    if (csp) {
+      passCount++;
+      findings.push({
+        header: 'Content-Security-Policy',
+        value: csp.slice(0, 140) + (csp.length > 140 ? '...' : ''),
+        status: 'pass',
+        importance: 'critical',
+        description: 'Restricts sources of executable scripts, objects, frames, and connections.',
+        recommendation: 'Policy active. Ensure default-src and script-src avoid unsafe-inline or unsafe-eval.',
+      });
+    } else {
+      failCount++;
+      score -= 25;
+      findings.push({
+        header: 'Content-Security-Policy',
+        status: 'fail',
+        importance: 'critical',
+        description: 'Defines approved content sources to prevent Cross-Site Scripting (XSS) and injection.',
+        recommendation: 'Deploy a robust CSP header (e.g. default-src \'self\'; script-src \'self\').',
+      });
+    }
+
+    // Strict-Transport-Security (HSTS)
+    const hsts = normalized['strict-transport-security'];
+    if (hsts) {
+      const maxAgeMatch = hsts.match(/max-age=(\d+)/i);
+      const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1], 10) : 0;
+      if (maxAge >= 15768000) {
+        passCount++;
+        findings.push({
+          header: 'Strict-Transport-Security',
+          value: hsts,
+          status: 'pass',
+          importance: 'high',
+          description: 'Enforces HTTPS encryption and protects against SSL-stripping MITM attacks.',
+          recommendation: 'HSTS is properly configured with an effective expiration window.',
+        });
+      } else {
+        score -= 10;
+        findings.push({
+          header: 'Strict-Transport-Security',
+          value: hsts,
+          status: 'warn',
+          importance: 'high',
+          description: 'HSTS max-age is below recommended 1-year threshold (31536000s).',
+          recommendation: 'Increase max-age to at least 31536000 and includeSubDomains.',
+        });
+      }
+    } else {
+      failCount++;
+      score -= 20;
+      findings.push({
+        header: 'Strict-Transport-Security',
+        status: 'fail',
+        importance: 'high',
+        description: 'Forces web browsers to only communicate over encrypted HTTPS.',
+        recommendation: 'Set Strict-Transport-Security: max-age=31536000; includeSubDomains; preload.',
+      });
+    }
+
+    // X-Frame-Options
+    const xfo = normalized['x-frame-options'];
+    if (xfo && (xfo.toUpperCase() === 'DENY' || xfo.toUpperCase() === 'SAMEORIGIN')) {
+      passCount++;
+      findings.push({
+        header: 'X-Frame-Options',
+        value: xfo,
+        status: 'pass',
+        importance: 'high',
+        description: 'Prevents site embedding in foreign iframes (Clickjacking defense).',
+        recommendation: 'Clickjacking mitigation is active.',
+      });
+    } else {
+      failCount++;
+      score -= 15;
+      findings.push({
+        header: 'X-Frame-Options',
+        status: 'fail',
+        importance: 'high',
+        description: 'Mitigates UI redressing / Clickjacking attacks.',
+        recommendation: 'Set X-Frame-Options: SAMEORIGIN or DENY.',
+      });
+    }
+
+    // X-Content-Type-Options
+    const xcto = normalized['x-content-type-options'];
+    if (xcto && xcto.toLowerCase() === 'nosniff') {
+      passCount++;
+      findings.push({
+        header: 'X-Content-Type-Options',
+        value: xcto,
+        status: 'pass',
+        importance: 'medium',
+        description: 'Prevents MIME-type confusion / sniffing vulnerabilities in browsers.',
+        recommendation: 'nosniff directive is active.',
+      });
+    } else {
+      failCount++;
+      score -= 10;
+      findings.push({
+        header: 'X-Content-Type-Options',
+        status: 'fail',
+        importance: 'medium',
+        description: 'Prevents MIME-sniffing by instructing browsers to respect declared Content-Type.',
+        recommendation: 'Set X-Content-Type-Options: nosniff.',
+      });
+    }
+
+    // Referrer-Policy
+    const refPol = normalized['referrer-policy'];
+    if (refPol && !refPol.toLowerCase().includes('unsafe-url')) {
+      passCount++;
+      findings.push({
+        header: 'Referrer-Policy',
+        value: refPol,
+        status: 'pass',
+        importance: 'medium',
+        description: 'Controls how much referrer information is sent with outbound navigation.',
+        recommendation: 'Referrer policy is securely restricted.',
+      });
+    } else {
+      failCount++;
+      score -= 10;
+      findings.push({
+        header: 'Referrer-Policy',
+        status: 'fail',
+        importance: 'medium',
+        description: 'Restricts path and query parameter leakage in HTTP Referer headers.',
+        recommendation: 'Set Referrer-Policy: strict-origin-when-cross-origin.',
+      });
+    }
+
+    // Permissions-Policy
+    const permPol = normalized['permissions-policy'] || normalized['feature-policy'];
+    if (permPol) {
+      passCount++;
+      findings.push({
+        header: 'Permissions-Policy',
+        value: permPol.slice(0, 90) + (permPol.length > 90 ? '...' : ''),
+        status: 'pass',
+        importance: 'low',
+        description: 'Restricts browser APIs (camera, microphone, geolocation).',
+        recommendation: 'Permissions policy is active.',
+      });
+    } else {
+      score -= 5;
+      findings.push({
+        header: 'Permissions-Policy',
+        status: 'warn',
+        importance: 'low',
+        description: 'Controls access to hardware sensors and browser features.',
+        recommendation: 'Consider setting Permissions-Policy (e.g. camera=(), microphone=()).',
+      });
+    }
+
+    // Server / X-Powered-By leakage
+    const serverHdr = normalized['server'];
+    const poweredBy = normalized['x-powered-by'];
+    if (poweredBy) {
+      failCount++;
+      score -= 10;
+      findings.push({
+        header: 'X-Powered-By Leakage',
+        value: poweredBy,
+        status: 'fail',
+        importance: 'medium',
+        description: 'Leaking backend technology stack aids targeted version exploit enumeration.',
+        recommendation: 'Disable X-Powered-By header in web server configuration.',
+      });
+    } else if (serverHdr && /\d+\.\d+/.test(serverHdr)) {
+      score -= 5;
+      findings.push({
+        header: 'Server Banner Version Leak',
+        value: serverHdr,
+        status: 'warn',
+        importance: 'medium',
+        description: `Exact server version revealed: ${serverHdr}.`,
+        recommendation: 'Conceal granular software versions in production web server configuration.',
+      });
+    } else {
+      passCount++;
+      findings.push({
+        header: 'Server & Tech Concealment',
+        value: serverHdr || 'Concealed',
+        status: 'pass',
+        importance: 'low',
+        description: 'No sensitive backend version numbers exposed in headers.',
+        recommendation: 'Good hardening practice.',
+      });
+    }
+
+    score = Math.max(0, Math.min(100, score));
+    let grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F' = 'F';
+    if (score >= 95) grade = 'A+';
+    else if (score >= 85) grade = 'A';
+    else if (score >= 70) grade = 'B';
+    else if (score >= 55) grade = 'C';
+    else if (score >= 40) grade = 'D';
+    else grade = 'F';
+
+    return {
+      grade,
+      score,
+      passCount,
+      failCount,
+      findings,
+    };
+  }
+
+  /**
+   * 2. Passive Technology & Component Stack Fingerprinting
+   */
+  public detectTechnologies(headers: Record<string, string> = {}, html: string = ''): DetectedTechnology[] {
+    const techs: DetectedTechnology[] = [];
+    const normalized: Record<string, string> = {};
+    for (const [k, v] of Object.entries(headers || {})) {
+      normalized[k.toLowerCase()] = v;
+    }
+
+    const server = normalized['server'] || '';
+    const poweredBy = normalized['x-powered-by'] || '';
+    const setCookie = normalized['set-cookie'] || '';
+
+    // Web Servers
+    if (/litespeed/i.test(server)) {
+      techs.push({ name: 'LiteSpeed Web Server', category: 'Web Server', confidence: 'high' });
+    } else if (/nginx/i.test(server)) {
+      const ver = server.match(/nginx\/([\d.]+)/i)?.[1];
+      techs.push({ name: 'Nginx', category: 'Web Server', version: ver, confidence: 'high' });
+    } else if (/apache/i.test(server)) {
+      const ver = server.match(/apache\/([\d.]+)/i)?.[1];
+      techs.push({ name: 'Apache HTTP Server', category: 'Web Server', version: ver, confidence: 'high' });
+    } else if (/caddy/i.test(server)) {
+      techs.push({ name: 'Caddy', category: 'Web Server', confidence: 'high' });
+    } else if (/microsoft-iis/i.test(server)) {
+      const ver = server.match(/microsoft-iis\/([\d.]+)/i)?.[1];
+      techs.push({ name: 'Microsoft IIS', category: 'Web Server', version: ver, confidence: 'high' });
+    } else if (/cloudflare/i.test(server)) {
+      techs.push({ name: 'Cloudflare Edge Server', category: 'Web Server', confidence: 'high' });
+    }
+
+    // CDN / WAF
+    if (normalized['cf-ray'] || /cloudflare/i.test(server) || /__cf_bm/i.test(setCookie)) {
+      techs.push({ name: 'Cloudflare CDN / WAF', category: 'CDN / WAF', confidence: 'high' });
+    }
+    if (normalized['x-amz-cf-id'] || /cloudfront/i.test(server)) {
+      techs.push({ name: 'Amazon CloudFront', category: 'CDN / WAF', confidence: 'high' });
+    }
+    if (normalized['x-served-by']?.includes('cache-') || /fastly/i.test(server)) {
+      techs.push({ name: 'Fastly CDN', category: 'CDN / WAF', confidence: 'high' });
+    }
+    if (normalized['x-litespeed-cache']) {
+      techs.push({ name: 'LSCache (LiteSpeed Cache)', category: 'CDN / WAF', confidence: 'high' });
+    }
+
+    // Backend / Platform
+    if (/php/i.test(poweredBy) || /PHPSESSID/i.test(setCookie)) {
+      const ver = poweredBy.match(/php\/([\d.]+)/i)?.[1];
+      techs.push({ name: 'PHP', category: 'Backend', version: ver, confidence: 'high' });
+    }
+    if (/asp\.net/i.test(poweredBy) || normalized['x-aspnet-version'] || /ASP\.NET_SessionId/i.test(setCookie)) {
+      techs.push({ name: 'ASP.NET', category: 'Backend', confidence: 'high' });
+    }
+    if (/express/i.test(poweredBy) || /connect\.sid/i.test(setCookie)) {
+      techs.push({ name: 'Express.js (Node.js)', category: 'Backend', confidence: 'high' });
+    }
+    if (/laravel/i.test(setCookie) || /XSRF-TOKEN.*laravel/i.test(setCookie)) {
+      techs.push({ name: 'Laravel', category: 'Backend', confidence: 'medium' });
+    }
+    if (/csrftoken.*django/i.test(setCookie) || /django/i.test(html)) {
+      techs.push({ name: 'Django (Python)', category: 'Backend', confidence: 'medium' });
+    }
+
+    // CMS & Frameworks
+    if (html) {
+      if (/wp-content|wp-includes|wp-json/i.test(html)) {
+        const wpVer = html.match(/name=["']generator["']\s+content=["']WordPress\s+([\d.]+)/i)?.[1];
+        techs.push({ name: 'WordPress', category: 'CMS', version: wpVer, confidence: 'high' });
+      }
+      if (/Drupal\.settings|drupal\.js|name=["']generator["']\s+content=["']Drupal/i.test(html)) {
+        techs.push({ name: 'Drupal', category: 'CMS', confidence: 'high' });
+      }
+      if (/cdn\.shopify\.com|Shopify\.theme/i.test(html)) {
+        techs.push({ name: 'Shopify', category: 'CMS', confidence: 'high' });
+      }
+      if (/joomla/i.test(html)) {
+        techs.push({ name: 'Joomla', category: 'CMS', confidence: 'high' });
+      }
+
+      if (/__NEXT_DATA__|_next\/static/i.test(html)) {
+        techs.push({ name: 'Next.js (React Framework)', category: 'Frontend', confidence: 'high' });
+      } else if (/__NUXT__|_nuxt\//i.test(html)) {
+        techs.push({ name: 'Nuxt (Vue Framework)', category: 'Frontend', confidence: 'high' });
+      } else if (/data-reactroot|_reactListening|react\.production/i.test(html)) {
+        techs.push({ name: 'React', category: 'Frontend', confidence: 'high' });
+      } else if (/data-v-|__vue_app__|vue\.global/i.test(html)) {
+        techs.push({ name: 'Vue.js', category: 'Frontend', confidence: 'high' });
+      } else if (/ng-version|ng-app/i.test(html)) {
+        const ngVer = html.match(/ng-version=["']([\d.]+)/i)?.[1];
+        techs.push({ name: 'Angular', category: 'Frontend', version: ngVer, confidence: 'high' });
+      }
+
+      if (/jquery[.-]([\d.]+)?\.min\.js/i.test(html) || /jQuery/i.test(html)) {
+        const jqVer = html.match(/jquery[.-]([\d.]+)\.min\.js/i)?.[1];
+        techs.push({ name: 'jQuery', category: 'Frontend', version: jqVer, confidence: 'high' });
+      }
+      if (/bootstrap[.-]([\d.]+)?(\.bundle)?\.min\.(js|css)/i.test(html)) {
+        const bVer = html.match(/bootstrap[.-]([\d.]+)/i)?.[1];
+        techs.push({ name: 'Bootstrap', category: 'Frontend', version: bVer, confidence: 'high' });
+      }
+      if (/class="[^"]*(flex|grid|hidden|px-|py-|text-)/i.test(html)) {
+        techs.push({ name: 'Tailwind CSS', category: 'Frontend', confidence: 'medium' });
+      }
+
+      if (/googletagmanager\.com|gtag\/js/i.test(html)) {
+        techs.push({ name: 'Google Tag Manager / GA4', category: 'Analytics', confidence: 'high' });
+      }
+      if (/hotjar\.com|hjid/i.test(html)) {
+        techs.push({ name: 'Hotjar Analytics', category: 'Analytics', confidence: 'high' });
+      }
+      if (/fbevents\.js|fbq\(/i.test(html)) {
+        techs.push({ name: 'Meta Pixel', category: 'Analytics', confidence: 'high' });
+      }
+
+      if (/challenges\.cloudflare\.com\/turnstile/i.test(html)) {
+        techs.push({ name: 'Cloudflare Turnstile', category: 'Security / Captcha', confidence: 'high' });
+      }
+      if (/google\.com\/recaptcha/i.test(html)) {
+        techs.push({ name: 'Google reCAPTCHA', category: 'Security / Captcha', confidence: 'high' });
+      }
+      if (/hcaptcha\.com/i.test(html)) {
+        techs.push({ name: 'hCaptcha', category: 'Security / Captcha', confidence: 'high' });
+      }
+    }
+
+    const seen = new Set<string>();
+    return techs.filter((t) => {
+      if (seen.has(t.name)) return false;
+      seen.add(t.name);
+      return true;
+    });
+  }
+
+  /**
+   * 3. Passive Email Security & Anti-Spoofing Posture (SPF, DMARC, CAA)
+   */
+  public async fetchEmailSecurityAndCAA(domain: string): Promise<EmailSecurityPosture> {
+    const dnsPromises = dns.promises;
+    let spfRecord: string | undefined;
+    let dmarcRecord: string | undefined;
+    let caaRecords: string[] = [];
+    const authorizedCas: string[] = [];
+    const relayNetworks: string[] = [];
+
+    // Query SPF (domain TXT)
+    try {
+      const txts = await dnsPromises.resolveTxt(domain);
+      const flatTxt = txts.map((t) => t.join(''));
+      spfRecord = flatTxt.find((t) => t.startsWith('v=spf1'));
+      if (spfRecord) {
+        const parts = spfRecord.split(/\s+/);
+        for (const p of parts) {
+          if (p.startsWith('include:') || p.startsWith('ip4:') || p.startsWith('ip6:') || p.startsWith('redirect=')) {
+            relayNetworks.push(p);
+          }
+        }
+      }
+    } catch {}
+
+    // Query DMARC (_dmarc.<domain> TXT)
+    try {
+      const dmarcTxts = await dnsPromises.resolveTxt(`_dmarc.${domain}`);
+      dmarcRecord = dmarcTxts.map((t) => t.join('')).find((t) => t.startsWith('v=DMARC1'));
+    } catch {}
+
+    // Query CAA records
+    try {
+      const caa = await dnsPromises.resolveCaa(domain);
+      if (caa && Array.isArray(caa)) {
+        for (const c of caa) {
+          caaRecords.push(`${c.tag || 'issue'}: ${c.value || (c as any).issue}`);
+          if (c.value || (c as any).issue) {
+            authorizedCas.push(String(c.value || (c as any).issue));
+          }
+        }
+      }
+    } catch {}
+
+    // SPF Posture evaluation
+    let spfStatus: 'hardfail' | 'softfail' | 'neutral' | 'missing' | 'vulnerable' = 'missing';
+    let spfDesc = 'No SPF record published. Anyone can forge emails from this domain.';
+    if (spfRecord) {
+      if (spfRecord.includes('-all')) {
+        spfStatus = 'hardfail';
+        spfDesc = 'Hardfail enforced (-all). Unlisted sending servers are strictly rejected by recipient MTAs.';
+      } else if (spfRecord.includes('~all')) {
+        spfStatus = 'softfail';
+        spfDesc = 'Softfail (~all). Unlisted servers are flagged as suspicious but delivered to Spam.';
+      } else if (spfRecord.includes('+all') || spfRecord.includes('?all')) {
+        spfStatus = 'vulnerable';
+        spfDesc = 'CRITICAL: Insecure record (+all or ?all) permits unauthorized servers to spoof emails!';
+      } else {
+        spfStatus = 'neutral';
+        spfDesc = 'Neutral SPF policy. Does not provide deterministic anti-spoofing defense.';
+      }
+    }
+
+    // DMARC Posture evaluation
+    let dmarcPolicy: 'reject' | 'quarantine' | 'none' | 'missing' = 'missing';
+    let dmarcStatus: 'strong' | 'moderate' | 'insecure' | 'missing' = 'missing';
+    let dmarcDesc = 'No DMARC record found (_dmarc.<domain>). Domain is unprotected against executive spoofing & phishing.';
+    let ruaMailbox: string | undefined;
+
+    if (dmarcRecord) {
+      const policyMatch = dmarcRecord.match(/p\s*=\s*([a-zA-Z]+)/i);
+      const pol = policyMatch ? policyMatch[1].toLowerCase() : 'none';
+      const ruaMatch = dmarcRecord.match(/rua\s*=\s*([^;]+)/i);
+      if (ruaMatch) ruaMailbox = ruaMatch[1].trim();
+
+      if (pol === 'reject') {
+        dmarcPolicy = 'reject';
+        dmarcStatus = 'strong';
+        dmarcDesc = 'Strict Reject (p=reject). Spoofed emails are outright blocked by recipient inboxes.';
+      } else if (pol === 'quarantine') {
+        dmarcPolicy = 'quarantine';
+        dmarcStatus = 'moderate';
+        dmarcDesc = 'Quarantine (p=quarantine). Spoofed emails are diverted to recipient junk/quarantine folders.';
+      } else {
+        dmarcPolicy = 'none';
+        dmarcStatus = 'insecure';
+        dmarcDesc = 'Monitoring Only (p=none). WARNING: Spoofed emails are NOT blocked and will reach inboxes.';
+      }
+    }
+
+    return {
+      spf: {
+        record: spfRecord,
+        status: spfStatus,
+        description: spfDesc,
+        relayNetworks: relayNetworks.slice(0, 10),
+      },
+      dmarc: {
+        record: dmarcRecord,
+        policy: dmarcPolicy,
+        status: dmarcStatus,
+        description: dmarcDesc,
+        ruaMailbox,
+      },
+      caa: {
+        records: caaRecords,
+        authorizedCas: Array.from(new Set(authorizedCas)),
+        status: caaRecords.length > 0 ? 'enforced' : 'missing',
+      },
+    };
+  }
+
+  /**
+   * 4. Passive Certificate Transparency (CT) Log Mining via crt.sh
+   */
+  public async fetchCertificateTransparencySubdomains(domain: string, rootDomain?: string): Promise<string[]> {
+    const targetDomain = rootDomain || domain;
+    try {
+      const res = await fetch(`https://crt.sh/?q=%25.${targetDomain}&output=json`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+        signal: AbortSignal.timeout(4500),
+      });
+      if (!res.ok) return [];
+      const entries = (await res.json()) as any[];
+      const subdomains = new Set<string>();
+      for (const entry of entries) {
+        const val = entry.name_value || '';
+        for (const line of val.split('\n')) {
+          const clean = line.replace(/^\*\./, '').toLowerCase().trim();
+          if (clean.endsWith('.' + targetDomain) && clean !== targetDomain) {
+            subdomains.add(clean);
+          }
+        }
+      }
+      return Array.from(subdomains);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * 5. RFC 9116 security.txt & Vulnerability Disclosure Program (VDP) Discovery
+   */
+  public async fetchSecurityTxt(origin: string): Promise<SecurityTxtData | undefined> {
+    const candidates = [
+      `${origin}/.well-known/security.txt`,
+      `${origin}/security.txt`,
+    ];
+    for (const cUrl of candidates) {
+      try {
+        const probe = await this.probeHttpEndpoint(cUrl, 3000);
+        if (probe && probe.status === 200 && probe.body && /contact:/i.test(probe.body)) {
+          const lines = probe.body.split(/\r?\n/);
+          const contacts: string[] = [];
+          let policy: string | undefined;
+          let encryption: string | undefined;
+          let hiring: string | undefined;
+          let acks: string | undefined;
+          let canonical: string | undefined;
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('#') || !trimmed) continue;
+            const colonIdx = trimmed.indexOf(':');
+            if (colonIdx === -1) continue;
+            const field = trimmed.slice(0, colonIdx).trim().toLowerCase();
+            const val = trimmed.slice(colonIdx + 1).trim();
+            if (field === 'contact') contacts.push(val);
+            else if (field === 'policy') policy = val;
+            else if (field === 'encryption') encryption = val;
+            else if (field === 'hiring') hiring = val;
+            else if (field === 'acknowledgments') acks = val;
+            else if (field === 'canonical') canonical = val;
+          }
+
+          return {
+            exists: true,
+            url: cUrl,
+            contact: contacts,
+            policy,
+            encryption,
+            hiring,
+            acknowledgments: acks,
+            canonical,
+            raw: probe.body.slice(0, 1500),
+          };
+        }
+      } catch {}
+    }
+    return undefined;
+  }
+
+  /**
+   * 6. RFC 7480 Registration Data Access Protocol (RDAP) lookup
+   */
+  public async fetchRdapData(target: string, isIp: boolean): Promise<RdapData | undefined> {
+    const rdapUrl = isIp ? `https://rdap.org/ip/${target}` : `https://rdap.org/domain/${target}`;
+    try {
+      const res = await fetch(rdapUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+        signal: AbortSignal.timeout(3500),
+      });
+      if (!res.ok) return undefined;
+      const data = (await res.json()) as any;
+
+      let registrar: string | undefined;
+      if (data.entities && Array.isArray(data.entities)) {
+        for (const ent of data.entities) {
+          if (ent.roles && (ent.roles.includes('registrar') || ent.roles.includes('registrant'))) {
+            registrar = ent.vcardArray?.[1]?.find((f: any) => f[0] === 'fn')?.[3] || ent.handle;
+            if (registrar) break;
+          }
+        }
+      }
+
+      let created: string | undefined;
+      let expires: string | undefined;
+      let updated: string | undefined;
+      if (data.events && Array.isArray(data.events)) {
+        for (const ev of data.events) {
+          if (ev.eventAction === 'registration') created = ev.eventDate;
+          else if (ev.eventAction === 'expiration') expires = ev.eventDate;
+          else if (ev.eventAction === 'last changed' || ev.eventAction === 'last update') updated = ev.eventDate;
+        }
+      }
+
+      return {
+        target,
+        handle: data.handle,
+        name: data.name,
+        country: data.country,
+        registrar,
+        startAddress: data.startAddress,
+        endAddress: data.endAddress,
+        created,
+        expires,
+        updated,
+        status: Array.isArray(data.status) ? data.status : undefined,
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
   public async enrichWithDnsAndGeo(item: ScrapedResult): Promise<void> {
     const domain = item.domain;
     if (!domain) return;
@@ -628,10 +1311,18 @@ export class ScraperService {
     const isIp = this.isIp(domain);
     item.osint.is_ip = isIp;
 
+    // 1. Audit Security Headers & Detect Technologies from response headers
+    const sampleHeaders: Record<string, string> = (item as any)._responseHeaders || {};
+    if (item.metadata?.server && !sampleHeaders['server']) {
+      sampleHeaders['server'] = item.metadata.server;
+    }
+    item.osint.security_headers = this.auditSecurityHeaders(sampleHeaders);
+    item.osint.technologies = this.detectTechnologies(sampleHeaders, item.text || '');
+
     if (isIp) {
       item.osint.target_ip = domain;
 
-      // 1. Reverse DNS (PTR)
+      // Reverse DNS (PTR)
       try {
         const ptrs = await dns.promises.reverse(domain);
         item.osint.reverse_dns = ptrs;
@@ -644,7 +1335,7 @@ export class ScraperService {
         item.osint.reverse_dns = [];
       }
 
-      // 2. TLS Cert Inspection on port 443
+      // TLS Cert Inspection on port 443
       try {
         const cert = await this.inspectTlsCert(domain, 443);
         if (cert) {
@@ -662,37 +1353,54 @@ export class ScraperService {
         }
       } catch {}
 
-      // 3. Geolocation directly on the IP
+      // Geolocation and RDAP for IP
       try {
-        const geoRes = await fetch(`http://ip-api.com/json/${domain}?fields=status,country,city,isp,org,as,query`, {
-          signal: AbortSignal.timeout(3500),
-        });
-        if (geoRes.ok) {
-          const geoData = (await geoRes.json()) as any;
+        const [geoRes, rdapData] = await Promise.allSettled([
+          fetch(`http://ip-api.com/json/${domain}?fields=status,country,city,isp,org,as,query`, {
+            signal: AbortSignal.timeout(3500),
+          }),
+          this.fetchRdapData(domain, true),
+        ]);
+
+        if (geoRes.status === 'fulfilled' && geoRes.value.ok) {
+          const geoData = (await geoRes.value.json()) as any;
           if (geoData.status === 'success') {
             item.osint.geo = geoData;
           }
         }
+        if (rdapData.status === 'fulfilled' && rdapData.value) {
+          item.osint.rdap = rdapData.value;
+        }
       } catch {}
 
-      // 4. Robots & Folder digging on the IP
-      if (!item.osint.robots_txt || !item.osint.sensitive_files) {
-        const emailsSet = new Set(item.emails || []);
-        const digOrigin = item.url.startsWith('https://') ? item.url : `https://${domain}`;
-        const dig = await this.performRobotsAndFolderDigging(digOrigin, emailsSet);
-        item.osint.robots_txt = dig.robots;
-        item.osint.sensitive_files = dig.files;
-        item.emails = Array.from(emailsSet).sort();
+      // Robots, Folder digging & security.txt on IP
+      const digOrigin = item.url.startsWith('https://') ? item.url : `https://${domain}`;
+      const [secTxt, dig] = await Promise.allSettled([
+        this.fetchSecurityTxt(digOrigin),
+        (!item.osint.robots_txt || !item.osint.sensitive_files)
+          ? this.performRobotsAndFolderDigging(digOrigin, new Set(item.emails || []))
+          : Promise.resolve(null),
+      ]);
+
+      if (secTxt.status === 'fulfilled' && secTxt.value) {
+        item.osint.security_txt = secTxt.value;
+      }
+      if (dig.status === 'fulfilled' && dig.value) {
+        item.osint.robots_txt = dig.value.robots;
+        item.osint.sensitive_files = dig.value.files;
       }
     } else {
       // It is a Domain Target
       try {
         const dnsPromises = dns.promises;
-        const [aRes, mxRes, txtRes, nsRes] = await Promise.allSettled([
+        const [aRes, mxRes, txtRes, nsRes, emailSec, ctSubs, rdapData] = await Promise.allSettled([
           dnsPromises.resolve4(domain),
           dnsPromises.resolveMx(domain),
           dnsPromises.resolveTxt(domain),
           dnsPromises.resolveNs(domain),
+          this.fetchEmailSecurityAndCAA(domain),
+          this.fetchCertificateTransparencySubdomains(domain, item.osint.root_domain),
+          this.fetchRdapData(domain, false),
         ]);
 
         const aRecords = aRes.status === 'fulfilled' ? aRes.value : [];
@@ -706,6 +1414,27 @@ export class ScraperService {
           txt: txtRecords,
           ns: nsRecords,
         };
+
+        if (emailSec.status === 'fulfilled' && emailSec.value) {
+          item.osint.email_security = emailSec.value;
+        }
+
+        if (rdapData.status === 'fulfilled' && rdapData.value) {
+          item.osint.rdap = rdapData.value;
+        }
+
+        // Add CT subdomains to subdomains list
+        const existingSubdomains = new Set(item.subdomains || []);
+        if (ctSubs.status === 'fulfilled' && ctSubs.value) {
+          item.osint.ct_subdomains_count = ctSubs.value.length;
+          for (const s of ctSubs.value) {
+            existingSubdomains.add(s);
+            if (!item.osint.subdomains_detail) item.osint.subdomains_detail = [];
+            if (!item.osint.subdomains_detail.some((d) => d.subdomain === s)) {
+              item.osint.subdomains_detail.push({ subdomain: s, source: 'crt.sh' });
+            }
+          }
+        }
 
         // Geolocation and Reverse DNS on the first A record IP
         if (aRecords.length > 0) {
@@ -739,8 +1468,8 @@ export class ScraperService {
             item.osint.ssl_cert = cert;
             if (cert.sans) {
               for (const s of cert.sans) {
-                if (s.endsWith('.' + (item.osint.root_domain || domain)) && !item.subdomains.includes(s)) {
-                  item.subdomains.push(s);
+                if (s.endsWith('.' + (item.osint.root_domain || domain)) && !existingSubdomains.has(s)) {
+                  existingSubdomains.add(s);
                 }
               }
             }
@@ -748,7 +1477,6 @@ export class ScraperService {
         } catch {}
 
         // MX record subdomains
-        const existingSubdomains = new Set(item.subdomains || []);
         for (const mx of mxRecords) {
           if (mx.exchange && mx.exchange.endsWith('.' + domain)) {
             existingSubdomains.add(mx.exchange.toLowerCase());
@@ -756,14 +1484,22 @@ export class ScraperService {
         }
         item.subdomains = Array.from(existingSubdomains).sort();
 
-        // Perform Robots & Folder Digging if not already run
-        if (!item.osint.robots_txt || !item.osint.sensitive_files) {
-          const emailsSet = new Set(item.emails || []);
-          const digOrigin = `https://${domain}`;
-          const dig = await this.performRobotsAndFolderDigging(digOrigin, emailsSet, item.osint.root_domain);
-          item.osint.robots_txt = dig.robots;
-          item.osint.sensitive_files = dig.files;
-          item.emails = Array.from(emailsSet).sort();
+        // Perform Robots, Folder Digging & security.txt
+        const digOrigin = `https://${domain}`;
+        const [secTxt, dig] = await Promise.allSettled([
+          this.fetchSecurityTxt(digOrigin),
+          (!item.osint.robots_txt || !item.osint.sensitive_files)
+            ? this.performRobotsAndFolderDigging(digOrigin, new Set(item.emails || []), item.osint.root_domain)
+            : Promise.resolve(null),
+        ]);
+
+        if (secTxt.status === 'fulfilled' && secTxt.value) {
+          item.osint.security_txt = secTxt.value;
+        }
+        if (dig.status === 'fulfilled' && dig.value) {
+          item.osint.robots_txt = dig.value.robots;
+          item.osint.sensitive_files = dig.value.files;
+          item.emails = Array.from(new Set([...(item.emails || []), ...Array.from(dig.value.emails)])).sort();
         }
       } catch (e: any) {
         console.warn(`[ScraperService] DNS/Geo enrichment warning: ${e.message}`);
@@ -813,10 +1549,12 @@ export class ScraperService {
         }
       }
 
+      let responseHeaders: Record<string, string> = {};
       if (probe) {
         status = probe.status;
         server = probe.headers['server'] || '';
         contentType = probe.contentType;
+        responseHeaders = probe.headers;
         if (probe.title) title = probe.title;
         mainText = probe.body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 6000);
         this.extractEmailsFromHtml(probe.body, emails);
@@ -1035,6 +1773,8 @@ export class ScraperService {
           sensitive_files: dig.files,
           subdomains_detail: subdomainsDetail,
           crawled_pages: crawledPages,
+          security_headers: this.auditSecurityHeaders(responseHeaders),
+          technologies: this.detectTechnologies(responseHeaders, mainText),
         },
       };
     }
@@ -1087,8 +1827,14 @@ export class ScraperService {
     const robotsTxt = osint?.robots_txt;
     const sensitiveFiles = osint?.sensitive_files || [];
 
+    const secHeaders = osint?.security_headers;
+    const emailSec = osint?.email_security;
+    const techStack = osint?.technologies || [];
+    const secTxt = osint?.security_txt;
+    const rdap = osint?.rdap;
+
     const prompt = `You are RedTeam & DevSecOps Lead for Zak_OS.
-Perform an exhaustive, professional cybersecurity attack surface, penetration testing reconnaissance, and threat assessment on this target data extracted via Scrapy and OSINT engine.
+Perform an exhaustive, professional cybersecurity attack surface, penetration testing reconnaissance, and threat assessment on this target data extracted via Scrapy and the lawful OSINT intelligence engine.
 
 TARGET CLASSIFICATION: ${isIp ? 'Raw IP Host' : 'Registered Domain'}
 TARGET URL: ${scrapedItem.url}
@@ -1103,6 +1849,19 @@ DNS A RECORDS: ${dnsInfo?.a?.join(', ') || 'N/A'}
 DNS MX MAIL SERVERS: ${dnsInfo?.mx?.map((m) => `${m.exchange} (pri: ${m.priority})`).join(', ') || 'N/A'}
 DNS TXT / SPF / DMARC: ${dnsInfo?.txt?.join(' | ') || 'N/A'}
 NAMESERVERS (NS): ${dnsInfo?.ns?.join(', ') || 'N/A'}
+
+--- DEFENSIVE POSTURE & AUDIT ---
+OWASP SECURITY HEADERS GRADE: ${secHeaders ? `${secHeaders.grade} (${secHeaders.score}/100 - ${secHeaders.passCount} passed, ${secHeaders.failCount} failed)` : 'N/A'}
+FAILED DEFENSIVE HEADERS: ${secHeaders?.findings?.filter(f => f.status === 'fail').map(f => `${f.header} (${f.description})`).join('; ') || 'None'}
+FINGERPRINTED TECH STACK (${techStack.length}): ${techStack.map(t => `${t.name} [${t.category}${t.version ? ' ' + t.version : ''}]`).join(', ') || 'None'}
+EMAIL SPOOFING (SPF): ${emailSec?.spf?.status ? `${emailSec.spf.status.toUpperCase()} - ${emailSec.spf.description}` : 'N/A'}
+EMAIL ANTI-PHISHING (DMARC): ${emailSec?.dmarc?.status ? `${emailSec.dmarc.status.toUpperCase()} (policy: ${emailSec.dmarc.policy || 'none'}) - ${emailSec.dmarc.description}` : 'N/A'}
+CERTIFICATE AUTHORITY AUTH (CAA): ${emailSec?.caa?.status === 'enforced' ? `Enforced (${emailSec.caa.authorizedCas.join(', ')})` : 'Missing (Any CA can issue certs)'}
+RFC 9116 SECURITY.TXT: ${secTxt?.exists ? `Active (${secTxt.url}) | Contacts: ${secTxt.contact?.join(', ') || 'None'} | Policy: ${secTxt.policy || 'None'}` : 'Not Published'}
+REGISTRATION & RDAP ALLOCATION: ${rdap ? `Name: ${rdap.name || 'N/A'} | Handle: ${rdap.handle || 'N/A'} | Range: ${rdap.startAddress ? `${rdap.startAddress} - ${rdap.endAddress}` : 'N/A'} | Registrar: ${rdap.registrar || 'N/A'}` : 'N/A'}
+CERTIFICATE TRANSPARENCY (crt.sh) SUBDOMAINS: ${osint?.ct_subdomains_count || 0} discovered passively
+
+--- CERTIFICATE & DIRECTORY DIGGING ---
 SSL/TLS CERTIFICATE: CN: ${sslCert?.cn || 'N/A'} | Issuer: ${sslCert?.issuer || 'N/A'} | SANs: ${sslCert?.sans?.join(', ') || 'None'}
 ROBOTS.TXT DISALLOWED PATHS (${robotsTxt?.disallow?.length || 0}): ${robotsTxt?.disallow?.join(', ') || 'None'}
 DISCOVERED SITEMAPS (${robotsTxt?.sitemaps?.length || 0}): ${robotsTxt?.sitemaps?.join(', ') || 'None'}

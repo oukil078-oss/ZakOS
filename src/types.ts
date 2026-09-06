@@ -449,6 +449,79 @@ export interface SslCertInfo {
   serialNumber?: string;
 }
 
+export interface SecurityHeaderFinding {
+  header: string;
+  value?: string;
+  status: 'pass' | 'fail' | 'warn';
+  importance: 'critical' | 'high' | 'medium' | 'low';
+  description: string;
+  recommendation: string;
+}
+
+export interface SecurityHeadersAudit {
+  grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
+  score: number; // 0 - 100
+  passCount: number;
+  failCount: number;
+  findings: SecurityHeaderFinding[];
+}
+
+export interface DetectedTechnology {
+  name: string;
+  category: 'Web Server' | 'CMS' | 'Frontend' | 'Backend' | 'CDN / WAF' | 'Analytics' | 'Security / Captcha';
+  version?: string;
+  confidence: 'high' | 'medium' | 'low';
+  icon?: string;
+}
+
+export interface EmailSecurityPosture {
+  spf: {
+    record?: string;
+    status: 'hardfail' | 'softfail' | 'neutral' | 'missing' | 'vulnerable';
+    description: string;
+    relayNetworks?: string[];
+  };
+  dmarc: {
+    record?: string;
+    policy?: 'reject' | 'quarantine' | 'none' | 'missing';
+    status: 'strong' | 'moderate' | 'insecure' | 'missing';
+    description: string;
+    ruaMailbox?: string;
+  };
+  caa?: {
+    records: string[];
+    authorizedCas: string[];
+    status: 'enforced' | 'missing';
+  };
+}
+
+export interface SecurityTxtData {
+  exists: boolean;
+  url?: string;
+  contact?: string[];
+  policy?: string;
+  encryption?: string;
+  hiring?: string;
+  acknowledgments?: string;
+  canonical?: string;
+  raw?: string;
+}
+
+export interface RdapData {
+  target: string;
+  handle?: string;
+  name?: string;
+  country?: string;
+  registrar?: string;
+  startAddress?: string;
+  endAddress?: string;
+  created?: string;
+  expires?: string;
+  updated?: string;
+  status?: string[];
+  raw?: any;
+}
+
 export interface OsintReconData {
   root_domain?: string;
   is_ip?: boolean;
@@ -459,6 +532,12 @@ export interface OsintReconData {
   sensitive_files?: SensitiveFileFinding[];
   subdomains_detail?: SubdomainDetail[];
   crawled_pages?: string[];
+  security_headers?: SecurityHeadersAudit;
+  technologies?: DetectedTechnology[];
+  email_security?: EmailSecurityPosture;
+  security_txt?: SecurityTxtData;
+  rdap?: RdapData;
+  ct_subdomains_count?: number;
   dns?: {
     a?: string[];
     mx?: { exchange: string; priority: number }[];

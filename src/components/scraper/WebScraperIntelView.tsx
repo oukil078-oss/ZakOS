@@ -36,7 +36,7 @@ interface WebScraperIntelViewProps {
   onSaveToVaultNote: (title: string, content: string, branch: string, category: string) => void;
 }
 
-type ScraperTab = 'intel' | 'emails' | 'subdomains' | 'folders' | 'osint' | 'links' | 'metadata' | 'text' | 'raw';
+type ScraperTab = 'intel' | 'emails' | 'subdomains' | 'folders' | 'security' | 'osint' | 'links' | 'metadata' | 'text' | 'raw';
 type PipelineMode = 'recon' | 'cve' | 'security' | 'ai';
 
 export const WebScraperIntelView: React.FC<WebScraperIntelViewProps> = ({
@@ -235,6 +235,51 @@ ${crawledData.subdomains.length > 0 ? crawledData.subdomains.map(s => {
   const detail = osint?.subdomains_detail?.find(d => d.subdomain === s);
   return `| [${s}](https://${s}) | \`${detail?.ip || 'Resolved'}\` | \`${detail?.source || 'crawl'}\` |`;
 }).join('\n') : '| None | - | - |'}
+
+---
+
+## 🛡️ OWASP Security Headers Posture (Grade: ${osint?.security_headers?.grade || 'N/A'} - Score: ${osint?.security_headers?.score ?? 'N/A'}/100)
+| Security Header | Status | Risk Level | Finding / Directive |
+|---|---|---|---|
+${osint?.security_headers?.findings ? osint.security_headers.findings.map(f => `| \`${f.header}\` | \`${f.status.toUpperCase()}\` | \`${f.importance}\` | ${(f.value || f.description).slice(0, 60).replace(/\|/g, '\\|')} |`).join('\n') : '| None | - | - | - |'}
+
+---
+
+## ⚡ Fingerprinted Technology Stack
+${osint?.technologies && osint.technologies.length > 0 ? osint.technologies.map(t => `- **${t.name}** (\`${t.category}\`${t.version ? ` v${t.version}` : ''}) — Confidence: \`${t.confidence}\``).join('\n') : '- No specific technology components identified.'}
+
+---
+
+## ✉️ Email Anti-Spoofing & Phishing Posture (SPF & DMARC)
+- **SPF Record:** \`${osint?.email_security?.spf?.record || 'None'}\`
+  - **Verdict:** \`${osint?.email_security?.spf?.status || 'N/A'}\` — ${osint?.email_security?.spf?.description || ''}
+  - **Authorized Relay Networks:** ${osint?.email_security?.spf?.relayNetworks?.join(', ') || 'None declared'}
+- **DMARC Record:** \`${osint?.email_security?.dmarc?.record || 'None'}\`
+  - **Policy Enforcement:** \`${osint?.email_security?.dmarc?.policy || 'none'}\` (\`${osint?.email_security?.dmarc?.status || 'missing'}\`)
+  - **Assessment:** ${osint?.email_security?.dmarc?.description || ''}
+  - **Reporting Mailbox:** \`${osint?.email_security?.dmarc?.ruaMailbox || 'None'}\`
+- **Certificate Authority Authorization (CAA):** \`${osint?.email_security?.caa?.status || 'missing'}\` (${osint?.email_security?.caa?.authorizedCas?.join(', ') || 'Any CA permitted'})
+
+---
+
+## 📜 RFC 9116 security.txt & Vulnerability Disclosure Program
+- **Status:** \`${osint?.security_txt?.exists ? 'Published & Active' : 'Not Published'}\`
+- **Endpoint URL:** \`${osint?.security_txt?.url || 'N/A'}\`
+- **Reporting Contact:** \`${osint?.security_txt?.contact?.join(', ') || 'None'}\`
+- **Safe Harbor Policy:** \`${osint?.security_txt?.policy || 'None'}\`
+
+---
+
+## 📋 Public Registration & Network Allocation (RDAP)
+- **Network / Domain Name:** \`${osint?.rdap?.name || 'N/A'}\`
+- **Registry Handle:** \`${osint?.rdap?.handle || 'N/A'}\`
+- **Allocated IP Range:** \`${osint?.rdap?.startAddress ? `${osint.rdap.startAddress} — ${osint.rdap.endAddress}` : 'N/A'}\`
+- **Registrar:** \`${osint?.rdap?.registrar || 'N/A'}\`
+
+---
+
+## 🌐 Certificate Transparency Logs (crt.sh)
+- **Passive Subdomains Discovered:** \`${osint?.ct_subdomains_count || 0}\` historical & active subdomains mined from public CA logs without sending traffic to the target.
 
 ---
 
@@ -453,6 +498,29 @@ ${threatAnalysis ? threatAnalysis.rawAnalysis : '*Threat triage not run yet.*'}
                       {crawledData.osint?.robots_txt?.disallow && crawledData.osint.robots_txt.disallow.length > 0 && (
                         <span className="text-[9px] px-1.5 py-0.2 rounded font-black bg-rose-500/30 text-rose-300">
                           {crawledData.osint.robots_txt.disallow.length} Disallow
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('security')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                        activeTab === 'security'
+                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Security & Tech</span>
+                      {crawledData.osint?.security_headers && (
+                        <span className={`text-[9px] px-1.5 py-0.2 rounded font-black ${
+                          crawledData.osint.security_headers.grade === 'A+' || crawledData.osint.security_headers.grade === 'A'
+                            ? 'bg-emerald-500/30 text-emerald-300'
+                            : crawledData.osint.security_headers.grade === 'B' || crawledData.osint.security_headers.grade === 'C'
+                            ? 'bg-amber-500/30 text-amber-300'
+                            : 'bg-rose-500/30 text-rose-300'
+                        }`}>
+                          Grade {crawledData.osint.security_headers.grade}
                         </span>
                       )}
                     </button>
@@ -947,6 +1015,312 @@ ${threatAnalysis ? threatAnalysis.rawAnalysis : '*Threat triage not run yet.*'}
                             No sensitive folders or files discovered on target.
                           </div>
                         )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3.8 LAWFUL OSINT: SECURITY & TECH POSTURE */}
+                  {activeTab === 'security' && (
+                    <div className="space-y-4">
+                      {/* Summary Banner: OWASP Grade & Threat Alignment */}
+                      <div className="p-4 rounded-3xl bg-gradient-to-r from-purple-900/20 via-black/40 to-white/[0.02] border border-purple-500/20 flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center font-black border shadow-lg ${
+                            crawledData.osint?.security_headers?.grade === 'A+' || crawledData.osint?.security_headers?.grade === 'A'
+                              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                              : crawledData.osint?.security_headers?.grade === 'B' || crawledData.osint?.security_headers?.grade === 'C'
+                              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                              : 'bg-rose-500/20 border-rose-500/40 text-rose-300'
+                          }`}>
+                            <span className="text-[10px] text-gray-400 font-bold">OWASP</span>
+                            <span className="text-2xl leading-none font-extrabold">{crawledData.osint?.security_headers?.grade || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-base font-extrabold text-white">Client Defense-in-Depth Posture</h3>
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold border border-purple-500/40 uppercase">
+                                100% Passive Audit
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              Security Score: <span className="text-white font-mono font-bold">{crawledData.osint?.security_headers?.score ?? 'N/A'}/100</span> — {crawledData.osint?.security_headers?.passCount || 0} protections passed, {crawledData.osint?.security_headers?.failCount || 0} deficiencies detected.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* RFC 9116 / VDP Badge */}
+                        <div className="flex items-center gap-2">
+                          <span className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border ${
+                            crawledData.osint?.security_txt?.exists
+                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                              : 'bg-white/5 border-white/10 text-gray-400'
+                          }`}>
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>security.txt: {crawledData.osint?.security_txt?.exists ? 'Published (RFC 9116)' : 'Not Published'}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Section 1: Security Headers Breakdown */}
+                      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <ShieldAlert className="w-4 h-4 text-purple-400" />
+                            <h4 className="font-bold text-gray-200">HTTP Security Headers Evaluation</h4>
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-bold">
+                            {crawledData.osint?.security_headers?.findings?.length || 0} Core Protections Tested
+                          </span>
+                        </div>
+
+                        <div className="space-y-2">
+                          {crawledData.osint?.security_headers?.findings?.map((finding, idx) => (
+                            <div
+                              key={idx}
+                              className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                            >
+                              <div className="space-y-1 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                    finding.status === 'pass'
+                                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                      : finding.status === 'warn'
+                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                                  }`}>
+                                    {finding.status}
+                                  </span>
+                                  <span className="font-mono font-bold text-xs text-white">{finding.header}</span>
+                                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/5 text-gray-400 border border-white/10">
+                                    {finding.importance} risk
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-gray-400">{finding.description}</p>
+                                {finding.value && (
+                                  <div className="text-[10px] font-mono text-gray-300 bg-black/40 px-2 py-1 rounded border border-white/[0.04] truncate max-w-xl">
+                                    {finding.value}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-right sm:max-w-xs shrink-0">
+                                <span className="text-[10px] text-gray-400 font-medium block">
+                                  💡 {finding.recommendation}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Section 2: Fingerprinted Technology Stack */}
+                      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Cpu className="w-4 h-4 text-emerald-400" />
+                            <h4 className="font-bold text-gray-200">Fingerprinted Technology & Framework Stack</h4>
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-bold">
+                            {crawledData.osint?.technologies?.length || 0} Components Identified
+                          </span>
+                        </div>
+
+                        {crawledData.osint?.technologies && crawledData.osint.technologies.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                            {crawledData.osint.technologies.map((tech, idx) => (
+                              <div
+                                key={idx}
+                                className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-emerald-500/30 transition space-y-1.5"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-xs text-white">{tech.name}</span>
+                                  <span className={`text-[9px] px-1.5 py-0.2 rounded font-black uppercase ${
+                                    tech.confidence === 'high' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                                  }`}>
+                                    {tech.confidence}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                                  <span className="px-1.5 py-0.2 rounded bg-white/5 border border-white/10 text-[10px] text-gray-300">
+                                    {tech.category}
+                                  </span>
+                                  {tech.version && (
+                                    <span className="font-mono text-emerald-400 font-bold text-[10px]">
+                                      v{tech.version}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-500 italic">No specific framework or CMS components identified.</p>
+                        )}
+                      </div>
+
+                      {/* Section 3: Email Anti-Spoofing & Phishing Posture (SPF & DMARC) */}
+                      {crawledData.osint?.email_security && (
+                        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4 text-amber-400" />
+                              <h4 className="font-bold text-gray-200">Email Anti-Spoofing & Domain Phishing Defense</h4>
+                            </div>
+                            <span className="text-[10px] text-gray-400 font-bold">Mail Delivery Trust</span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {/* SPF Card */}
+                            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                                  <span>Sender Policy Framework (SPF)</span>
+                                </span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-black uppercase ${
+                                  crawledData.osint.email_security.spf.status === 'hardfail'
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                    : crawledData.osint.email_security.spf.status === 'softfail'
+                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                                }`}>
+                                  {crawledData.osint.email_security.spf.status}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-gray-400">
+                                {crawledData.osint.email_security.spf.description}
+                              </p>
+                              {crawledData.osint.email_security.spf.record && (
+                                <div className="p-2 rounded bg-black/40 border border-white/[0.04] text-[10px] font-mono text-amber-300 break-all">
+                                  {crawledData.osint.email_security.spf.record}
+                                </div>
+                              )}
+                              {crawledData.osint.email_security.spf.relayNetworks && crawledData.osint.email_security.spf.relayNetworks.length > 0 && (
+                                <div className="text-[10px] text-gray-400">
+                                  <span className="font-bold text-gray-300">Authorized Relays: </span>
+                                  {crawledData.osint.email_security.spf.relayNetworks.join(', ')}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* DMARC Card */}
+                            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-white">DMARC Policy Enforcement</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-black uppercase ${
+                                  crawledData.osint.email_security.dmarc.status === 'strong'
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                    : crawledData.osint.email_security.dmarc.status === 'moderate'
+                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                                }`}>
+                                  {crawledData.osint.email_security.dmarc.status}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-gray-400">
+                                {crawledData.osint.email_security.dmarc.description}
+                              </p>
+                              {crawledData.osint.email_security.dmarc.record && (
+                                <div className="p-2 rounded bg-black/40 border border-white/[0.04] text-[10px] font-mono text-purple-300 break-all">
+                                  {crawledData.osint.email_security.dmarc.record}
+                                </div>
+                              )}
+                              {crawledData.osint.email_security.dmarc.ruaMailbox && (
+                                <div className="text-[10px] text-gray-400">
+                                  <span className="font-bold text-gray-300">Telemetry Mailbox: </span>
+                                  <span className="font-mono text-gray-300">{crawledData.osint.email_security.dmarc.ruaMailbox}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Section 4: RFC 9116 security.txt & RDAP */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {/* security.txt Card */}
+                        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                              <span>RFC 9116 security.txt (Safe Harbor)</span>
+                            </span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded font-black uppercase ${
+                              crawledData.osint?.security_txt?.exists
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                : 'bg-gray-500/20 text-gray-400'
+                            }`}>
+                              {crawledData.osint?.security_txt?.exists ? 'Active' : 'Missing'}
+                            </span>
+                          </div>
+
+                          {crawledData.osint?.security_txt?.exists ? (
+                            <div className="space-y-1.5 text-xs text-gray-300">
+                              {crawledData.osint.security_txt.contact && (
+                                <div>
+                                  <span className="text-gray-500 font-bold block text-[10px]">REPORTING CONTACT</span>
+                                  <span className="font-mono text-emerald-300">{crawledData.osint.security_txt.contact.join(', ')}</span>
+                                </div>
+                              )}
+                              {crawledData.osint.security_txt.policy && (
+                                <div>
+                                  <span className="text-gray-500 font-bold block text-[10px]">POLICY URL</span>
+                                  <a href={crawledData.osint.security_txt.policy} target="_blank" rel="noreferrer" className="text-purple-300 underline font-mono text-[11px] truncate block">
+                                    {crawledData.osint.security_txt.policy}
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-500 italic">
+                              Target has not published an RFC 9116 security contact or vulnerability disclosure policy at /.well-known/security.txt.
+                            </p>
+                          )}
+                        </div>
+
+                        {/* RDAP / Network Allocation Card */}
+                        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                              <Globe className="w-4 h-4 text-sky-400" />
+                              <span>RFC 7480 Public Registration (RDAP)</span>
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded font-black uppercase bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                              Registry
+                            </span>
+                          </div>
+
+                          {crawledData.osint?.rdap ? (
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              {crawledData.osint.rdap.name && (
+                                <div className="p-2 rounded bg-white/[0.02] border border-white/5">
+                                  <span className="text-[10px] text-gray-500 block">NET NAME</span>
+                                  <span className="font-mono text-white font-bold">{crawledData.osint.rdap.name}</span>
+                                </div>
+                              )}
+                              {crawledData.osint.rdap.handle && (
+                                <div className="p-2 rounded bg-white/[0.02] border border-white/5">
+                                  <span className="text-[10px] text-gray-500 block">HANDLE</span>
+                                  <span className="font-mono text-white font-bold truncate block">{crawledData.osint.rdap.handle}</span>
+                                </div>
+                              )}
+                              {crawledData.osint.rdap.startAddress && (
+                                <div className="p-2 rounded bg-white/[0.02] border border-white/5 col-span-2">
+                                  <span className="text-[10px] text-gray-500 block">ALLOCATED IP BLOCK</span>
+                                  <span className="font-mono text-amber-300 font-bold">
+                                    {crawledData.osint.rdap.startAddress} — {crawledData.osint.rdap.endAddress}
+                                  </span>
+                                </div>
+                              )}
+                              {crawledData.osint.rdap.registrar && (
+                                <div className="p-2 rounded bg-white/[0.02] border border-white/5 col-span-2">
+                                  <span className="text-[10px] text-gray-500 block">REGISTRAR</span>
+                                  <span className="font-mono text-gray-300">{crawledData.osint.rdap.registrar}</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-500 italic">No RDAP registry record published or reachable for this target.</p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
