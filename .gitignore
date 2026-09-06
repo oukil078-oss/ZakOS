@@ -19,6 +19,8 @@ __pycache__/
 dist/
 dist-ssr/
 build/
+*.egg-info/
+*.egg
 *.local
 
 # Cache & Temporary Files

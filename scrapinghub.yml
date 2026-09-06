@@ -1,0 +1,3 @@
+project: 877012
+requirements_file: requirements.txt
+stack: scrapinghub-stack-scrapy:2.17
