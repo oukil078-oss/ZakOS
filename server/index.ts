@@ -10,6 +10,8 @@ import {
   AVAILABLE_MODELS, 
   getApiKey, 
   setApiKey, 
+  getExpLabsApiKey,
+  setExpLabsApiKey,
   streamAgentResponse, 
   getCombinedModels, 
   streamOllamaResponse,
@@ -239,17 +241,35 @@ app.get('/api/models', async (req: Request, res: Response) => {
 
 // 11. API Key Management
 app.get('/api/settings/key', (req: Request, res: Response) => {
-  const key = getApiKey();
-  const hasKey = key.length > 5;
-  const maskedKey = hasKey ? `${key.slice(0, 6)}...${key.slice(-4)}` : '';
-  res.json({ success: true, hasKey, maskedKey });
+  const googleKey = getApiKey();
+  const explabsKey = getExpLabsApiKey();
+  const hasExpLabs = explabsKey.length > 5;
+  const hasGoogle = googleKey.length > 5;
+  const hasKey = hasExpLabs || hasGoogle;
+  const maskedKey = hasExpLabs 
+    ? `${explabsKey.slice(0, 8)}...${explabsKey.slice(-4)}`
+    : (hasGoogle ? `${googleKey.slice(0, 6)}...${googleKey.slice(-4)}` : '');
+  
+  res.json({ 
+    success: true, 
+    hasKey, 
+    maskedKey,
+    hasExpLabs,
+    maskedExpLabsKey: hasExpLabs ? `${explabsKey.slice(0, 8)}...${explabsKey.slice(-4)}` : '',
+    hasGoogle,
+    maskedGoogleKey: hasGoogle ? `${googleKey.slice(0, 6)}...${googleKey.slice(-4)}` : ''
+  });
 });
 
 app.post('/api/settings/key', (req: Request, res: Response) => {
   try {
-    const { key } = req.body;
-    if (typeof key === 'string') {
-      setApiKey(key);
+    const { key, provider } = req.body;
+    if (typeof key === 'string' && key.trim()) {
+      if (key.startsWith('xpl_') || provider === 'explabs') {
+        setExpLabsApiKey(key.trim());
+      } else {
+        setApiKey(key.trim());
+      }
       res.json({ success: true, message: 'API key saved successfully' });
     } else {
       res.status(400).json({ success: false, error: 'Invalid key' });

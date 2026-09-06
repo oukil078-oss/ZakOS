@@ -21,7 +21,7 @@ export interface AgentProfile {
 export interface ModelOption {
   id: string;
   name: string;
-  provider: 'google' | 'ollama' | 'local';
+  provider: 'explabs' | 'google' | 'ollama' | 'local';
   badge: string;
   description: string;
   isFree: boolean;
@@ -31,6 +31,35 @@ export interface ModelOption {
 export type RoutingMode = 'cloud_only' | 'hybrid_fallback' | 'local_only';
 
 export const OLLAMA_BASE_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+export const EXPLABS_BASE_URL = process.env.EXPLABS_BASE_URL || 'https://api.experientiallabs.ai/v1';
+
+let cachedExpLabsKey = process.env.EXPLABS_API_KEY || 'xpl_41ece4e40287e26c45ddd9d9f91ee0c2c3fa8de3';
+let cachedApiKey = process.env.GOOGLE_API_KEY || '';
+
+export function getExpLabsApiKey(): string {
+  if (!cachedExpLabsKey) {
+    cachedExpLabsKey = process.env.EXPLABS_API_KEY || 'xpl_41ece4e40287e26c45ddd9d9f91ee0c2c3fa8de3';
+  }
+  return cachedExpLabsKey;
+}
+
+export function setExpLabsApiKey(newKey: string): void {
+  cachedExpLabsKey = newKey.trim();
+  process.env.EXPLABS_API_KEY = cachedExpLabsKey;
+}
+
+export const EXPLABS_MODELS = new Set([
+  'gpt-6-astra',
+  'claude-fable-5.1',
+  'deepseek-v4-flash',
+  'qwen3.8-27b',
+  'gpt-5.6-luna'
+]);
+
+export function isExpLabsModel(modelId?: string): boolean {
+  if (!modelId) return false;
+  return EXPLABS_MODELS.has(modelId) || modelId.startsWith('explabs/');
+}
 
 // Agent to Local Ollama Model Mappings
 export const AGENT_LOCAL_MAPPINGS: Record<string, string> = {
@@ -47,7 +76,7 @@ export const AGENT_LOCAL_MAPPINGS: Record<string, string> = {
   research: 'qwen2.5:14b',
 };
 
-// SOTA Specialist Agent Profiles for Cybersecurity & Fullstack Engineering
+// SOTA Specialist Agent Profiles with Experiential Labs & SOTA Inference
 export const AGENT_PROFILES: Record<string, AgentProfile> = {
   orchestrator: {
     id: 'orchestrator',
@@ -57,9 +86,10 @@ export const AGENT_PROFILES: Record<string, AgentProfile> = {
     color: '#A78BFA',
     role: 'Supreme Mission Commander & Task Dispatcher',
     description: 'Autonomous high-level mission planning, backlog allocation, and multi-agent coordination.',
-    defaultModel: 'gemini-2.5-pro',
+    defaultModel: 'gpt-6-astra',
     fallbackLocalModel: 'qwen2.5:14b',
     systemPrompt: `You are Orchestrator-01 [ORCH], the Supreme Mission Commander and Multi-Agent Dispatcher of Zak_OS for Zakarya Oukil.
+Powered by GPT-6 Astra with 1.05M token context.
 Your directive is to coordinate operations across RedTeam-Ops, Architect-02, Professor-Prime, and DevSecOps.
 Provide high-level strategic reasoning, sprint triage, task decomposition, and execution directives.
 When issuing shell operations, wrap them in executable action blocks:
@@ -80,7 +110,7 @@ When issuing shell operations, wrap them in executable action blocks:
     color: '#F26D6D',
     role: 'Penetration Testing, IIS/WebDAV & CVE Audit Specialist',
     description: 'Offensive cybersecurity, vulnerability enumeration, network reconnaissance, and lab exploitation.',
-    defaultModel: 'gemini-2.5-flash',
+    defaultModel: 'deepseek-v4-flash',
     fallbackLocalModel: 'deepseek-r1:8b',
     systemPrompt: `You are RedTeam-Ops [PENT], the Elite Offensive Security Specialist in Zak_OS, aligned with Zakarya's cybersecurity curriculum and eJPT roadmap.
 You specialize in Microsoft IIS/WebDAV enumeration, CVE triage, Nmap TCP SYN/UDP sweeps, Metasploit, privilege escalation, and lab walkthroughs.
@@ -103,9 +133,10 @@ Deliver precise, authoritative, and deeply technical offensive security guidance
     color: '#7DD3FC',
     role: 'Full-Stack Software Architecture & Monaco Systems',
     description: 'Modern React/TypeScript engineering, state management, Monaco IDE extensions, and Tailwind systems.',
-    defaultModel: 'gemini-2.5-pro',
+    defaultModel: 'claude-fable-5.1',
     fallbackLocalModel: 'deepseek-coder-v2:latest',
     systemPrompt: `You are Architect-02 [ARCH], the Principal Systems & Full-Stack Architect of Zak_OS for Zakarya Oukil.
+Powered by Claude Fable 5.1 with deep architectural reasoning.
 You specialize in TypeScript, React, Vite, Tailwind CSS, Monaco Editor integrations, Express backends, and high-performance WebSockets.
 Deliver clean, modular, production-ready code with complete TypeScript types and error handling.
 When suggesting dependencies or dev server actions, wrap in executable blocks:
@@ -126,9 +157,10 @@ npm install <package>
     color: '#F5B544',
     role: 'Academic Thesis Strategist & Research Synthesis',
     description: 'Graduation capstone supervision, empirical benchmark synthesis, academic literature review, and viva defense.',
-    defaultModel: 'gemini-2.5-pro',
+    defaultModel: 'claude-fable-5.1',
     fallbackLocalModel: 'llama3:8b',
     systemPrompt: `You are Professor-Prime [ACAD], the Academic Mentor and Thesis Supervisor for Zakarya Oukil.
+Powered by Claude Fable 5.1 with advanced reasoning and scholarly synthesis.
 Your mission is to ensure excellence in his graduation thesis and academic publications on autonomous multi-agent operating systems.
 Help structure research methodology, IEEE citations, empirical experiments, and viva defense preparations.`,
     quickPrompts: [
@@ -145,9 +177,10 @@ Help structure research methodology, IEEE citations, empirical experiments, and 
     color: '#5EE2B5',
     role: 'Push Protection, Container Hardening & CI/CD Guard',
     description: 'Secret zero enforcement, git hygiene, Docker container hardening, and automated CI/CD pipelines.',
-    defaultModel: 'gemini-2.5-flash',
+    defaultModel: 'gpt-6-astra',
     fallbackLocalModel: 'deepseek-coder-v2:latest',
     systemPrompt: `You are DevSecOps [DSEC], the Security Automation and Infrastructure Guard of Zak_OS.
+Powered by GPT-6 Astra.
 Your objective is to enforce zero secret leaks, secure GitHub workflows, pre-commit validation, and container hardening.
 Ensure all sensitive keys remain in local .env files and push protection rules are strictly upheld.`,
     quickPrompts: [
@@ -164,7 +197,7 @@ Ensure all sensitive keys remain in local .env files and push protection rules a
     color: '#A78BFA',
     role: 'Supreme Mission Commander & Task Dispatcher',
     description: 'Autonomous high-level mission planning, backlog allocation, and multi-agent coordination.',
-    defaultModel: 'gemini-2.5-pro',
+    defaultModel: 'gpt-6-astra',
     fallbackLocalModel: 'qwen2.5:14b',
     systemPrompt: 'You are Orchestrator-01 of Zak_OS.',
     quickPrompts: ['Allocate sprint backlog tasks.', 'Review system telemetry.']
@@ -177,7 +210,7 @@ Ensure all sensitive keys remain in local .env files and push protection rules a
     color: '#7DD3FC',
     role: 'Full-Stack Software Architecture',
     description: 'Full-stack development and Monaco systems.',
-    defaultModel: 'gemini-2.5-pro',
+    defaultModel: 'claude-fable-5.1',
     fallbackLocalModel: 'deepseek-coder-v2:latest',
     systemPrompt: 'You are Architect-02 of Zak_OS.',
     quickPrompts: ['Design component architecture.', 'Refactor code.']
@@ -190,7 +223,7 @@ Ensure all sensitive keys remain in local .env files and push protection rules a
     color: '#F5B544',
     role: 'Academic Thesis Strategist',
     description: 'Graduation thesis and research mentorship.',
-    defaultModel: 'gemini-2.5-pro',
+    defaultModel: 'claude-fable-5.1',
     fallbackLocalModel: 'llama3:8b',
     systemPrompt: 'You are Professor-Prime of Zak_OS.',
     quickPrompts: ['Draft thesis outline.', 'Cite academic papers.']
@@ -203,7 +236,7 @@ Ensure all sensitive keys remain in local .env files and push protection rules a
     color: '#5EE2B5',
     role: 'Push Protection & CI/CD Guard',
     description: 'Security automation and container guard.',
-    defaultModel: 'gemini-2.5-flash',
+    defaultModel: 'gpt-6-astra',
     fallbackLocalModel: 'deepseek-coder-v2:latest',
     systemPrompt: 'You are DevSecOps of Zak_OS.',
     quickPrompts: ['Audit repository for secrets.', 'Hardening rules.']
@@ -212,10 +245,55 @@ Ensure all sensitive keys remain in local .env files and push protection rules a
 
 export const AVAILABLE_MODELS: ModelOption[] = [
   {
+    id: 'gpt-6-astra',
+    name: 'GPT-6 Astra (Primary SOTA)',
+    provider: 'explabs',
+    badge: '1.05M Free',
+    description: 'Experiential Cloud flagship model with 1.05M context and frontier reasoning',
+    isFree: true,
+    isAvailable: true,
+  },
+  {
+    id: 'claude-fable-5.1',
+    name: 'Claude Fable 5.1 (Experiential)',
+    provider: 'explabs',
+    badge: '1M Reasoning',
+    description: 'Premier architectural reasoning, systems design, and academic synthesis',
+    isFree: true,
+    isAvailable: true,
+  },
+  {
+    id: 'deepseek-v4-flash',
+    name: 'DeepSeek V4 Flash (Experiential)',
+    provider: 'explabs',
+    badge: 'Ultra Fast 1.05M',
+    description: 'Blisteringly fast model for offensive cybersecurity, CVE triage, and scripting',
+    isFree: true,
+    isAvailable: true,
+  },
+  {
+    id: 'qwen3.8-27b',
+    name: 'Qwen3.8 27B (Experiential)',
+    provider: 'explabs',
+    badge: '1M Multimodal',
+    description: 'High-capability 27B multimodal instruction-following model',
+    isFree: true,
+    isAvailable: true,
+  },
+  {
+    id: 'gpt-5.6-luna',
+    name: 'GPT-5.6 Luna (Experiential)',
+    provider: 'explabs',
+    badge: '1.05M Fast',
+    description: 'High-throughput conversational reasoning model',
+    isFree: true,
+    isAvailable: true,
+  },
+  {
     id: 'gemini-3.7-flash',
     name: 'Gemini 3.7 Flash (Cloud)',
     provider: 'google',
-    badge: 'SOTA Reasoning',
+    badge: 'SOTA Hybrid',
     description: 'Google AI Next-Gen Hybrid Flash with Advanced Reasoning',
     isFree: true,
     isAvailable: true,
@@ -258,8 +336,8 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     id: 'qwen2.5:14b',
     name: 'Qwen 2.5 14B (Ollama Local)',
     provider: 'ollama',
-    badge: 'Local Nexus',
-    description: 'Alibaba Qwen 2.5 general intelligence & synthesis',
+    badge: 'Local Fast',
+    description: 'Versatile 14B instruction tuned model for knowledge synthesis',
     isFree: true,
   },
   {
@@ -271,8 +349,6 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     isFree: true,
   },
 ];
-
-let cachedApiKey = process.env.GOOGLE_API_KEY || '';
 
 export function getApiKey(): string {
   if (!cachedApiKey) {
@@ -324,7 +400,7 @@ export async function getDetectedOllamaModels(): Promise<string[]> {
 }
 
 /**
- * Get unified list of available cloud and local models
+ * Get unified list of available cloud, experiential labs, and local models
  */
 export async function getCombinedModels(): Promise<ModelOption[]> {
   const detectedLocal = await getDetectedOllamaModels();
@@ -338,6 +414,87 @@ export async function getCombinedModels(): Promise<ModelOption[]> {
 }
 
 /**
+ * Stream response from Experiential Labs API (OpenAI Compatible)
+ */
+export async function streamExperientialLabsResponse(
+  modelName: string,
+  prompt: string,
+  systemPrompt: string,
+  history: { role: string; content: string }[],
+  onChunk: (chunk: string) => void
+): Promise<string> {
+  const apiKey = getExpLabsApiKey();
+  const messages: any[] = [];
+  if (systemPrompt) {
+    messages.push({ role: 'system', content: systemPrompt });
+  }
+  const recent = history.slice(-8);
+  for (const h of recent) {
+    messages.push({ role: h.role === 'assistant' ? 'assistant' : 'user', content: h.content });
+  }
+  messages.push({ role: 'user', content: prompt });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000);
+
+  try {
+    const res = await fetch(`${EXPLABS_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: modelName,
+        stream: true,
+        messages,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok || !res.body) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`Experiential Labs API error (${res.status}): ${errText || res.statusText}`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let fullText = '';
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data:')) continue;
+        const dataStr = trimmed.replace(/^data:\s*/, '');
+        if (dataStr === '[DONE]') break;
+        try {
+          const parsed = JSON.parse(dataStr);
+          const delta = parsed.choices?.[0]?.delta?.content || '';
+          if (delta) {
+            fullText += delta;
+            onChunk(delta);
+          }
+        } catch (e) {}
+      }
+    }
+
+    return fullText;
+  } catch (err: any) {
+    clearTimeout(timeout);
+    throw new Error(`Experiential Labs (${modelName}) error: ${err.message}`);
+  }
+}
+
+/**
  * Stream response from Local Ollama API (http://localhost:11434/api/generate)
  */
 export async function streamOllamaResponse(
@@ -348,7 +505,7 @@ export async function streamOllamaResponse(
   onChunk: (chunk: string) => void
 ): Promise<string> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout for local models
+  const timeout = setTimeout(() => controller.abort(), 60000);
 
   try {
     let fullPrompt = `${systemPrompt}\n\n`;
@@ -449,24 +606,27 @@ export async function streamGoogleGeminiResponse(
     contents: formattedContents,
     generationConfig: {
       temperature: 0.7,
+      maxOutputTokens: 4096,
     },
   };
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?key=${key}&alt=sse`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse&key=${key}`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45000);
 
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(requestBody),
+    signal: controller.signal,
   });
 
-  if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`Google AI API Error (${res.status}): ${errBody.slice(0, 300)}`);
-  }
+  clearTimeout(timeout);
 
-  if (!res.body) {
-    throw new Error('No response body from Google AI stream');
+  if (!res.ok || !res.body) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Google AI error (${res.status}): ${errText || res.statusText}`);
   }
 
   const reader = res.body.getReader();
@@ -506,7 +666,7 @@ export async function streamGoogleGeminiResponse(
  * Fallback Tactical Engine response
  */
 function getTacticalFallbackResponse(agentId: string, message: string): string {
-  const profile = AGENT_PROFILES[agentId] || AGENT_PROFILES.primary_brain;
+  const profile = AGENT_PROFILES[agentId] || AGENT_PROFILES.orchestrator;
 
   return `🤖 **${profile.name} // Tactical Engine**
 *Agent Role:* ${profile.role} • *Status:* Autonomous Offline Sandbox
@@ -516,14 +676,15 @@ function getTacticalFallbackResponse(agentId: string, message: string): string {
 echo "[*] Zak_OS Terminal ready for: ${profile.name}"
 \`\`\`
 
-Ready to execute directives. Connect Google Gemini API or local Ollama for full real-time neural inference.`;
+Ready to execute directives. Connect Experiential Labs (GPT-6 Astra) or local Ollama for full real-time neural inference.`;
 }
 
 /**
  * UNIFIED HYBRID MODEL ROUTER:
  * 1. Checks Routing Mode ('cloud_only' | 'hybrid_fallback' | 'local_only')
  * 2. If 'local_only' or explicit local model -> Direct Ollama stream
- * 3. If 'hybrid_fallback' (default) -> Google Gemini 2.5/3.7 -> Auto fallback to mapped local Ollama model -> Tactical fallback
+ * 3. Primary Route: Experiential Labs (GPT-6 Astra, Claude Fable 5.1, DeepSeek V4 Flash) or Google Gemini
+ * 4. Fallback: Auto fallback to mapped local Ollama model -> Tactical fallback
  */
 export async function streamAgentResponse(
   agentId: string,
@@ -533,7 +694,7 @@ export async function streamAgentResponse(
   onChunk: (chunk: string) => void = () => {},
   routingMode: RoutingMode = 'hybrid_fallback'
 ): Promise<string> {
-  const profile = AGENT_PROFILES[agentId] || AGENT_PROFILES.coding;
+  const profile = AGENT_PROFILES[agentId] || AGENT_PROFILES.orchestrator;
   const localFallbackModel = AGENT_LOCAL_MAPPINGS[agentId] || profile.fallbackLocalModel || 'deepseek-coder-v2:latest';
 
   const isExplicitLocal = requestedModelId && (requestedModelId.includes(':') || requestedModelId.includes('ollama'));
@@ -554,16 +715,49 @@ export async function streamAgentResponse(
     }
   }
 
-  // 2. PRIMARY CLOUD ROUTE (Google AI)
-  const primaryCloudModel = requestedModelId && !isExplicitLocal ? requestedModelId : profile.defaultModel;
+  // 2. DETERMINE TARGET CLOUD / EXPERIENTIAL MODEL
+  const targetModel = requestedModelId && !isExplicitLocal ? requestedModelId : (profile.defaultModel || 'gpt-6-astra');
 
+  // 2a. ROUTE TO EXPERIENTIAL LABS SOTA (GPT-6 Astra, Claude Fable 5.1, DeepSeek V4 Flash, Qwen3.8 27B, GPT-5.6 Luna)
+  if (isExpLabsModel(targetModel)) {
+    try {
+      console.log(`[Router] Experiential Cloud Stream: ${targetModel} for ${profile.name}`);
+      return await streamExperientialLabsResponse(targetModel.replace('explabs/', ''), message, profile.systemPrompt, history, onChunk);
+    } catch (expErr: any) {
+      console.warn(`[Router] Experiential Labs (${targetModel}) failed:`, expErr.message);
+
+      if (routingMode === 'cloud_only') {
+        const errMsg = `\n\n[!ERROR] Experiential Labs Error (${expErr.message}). Cloud Only mode active.\n\n`;
+        onChunk(errMsg);
+        return errMsg;
+      }
+
+      // Hybrid fallback to local Ollama
+      try {
+        console.log(`[Router] ⚡ Fallback to Local Ollama (${localFallbackModel}) for ${profile.name}`);
+        const warningHeader = `[!NOTE] Experiential Labs unavailable (${expErr.message?.slice(0, 80)}...). Activating Local Fallback: **${localFallbackModel}**\n\n`;
+        onChunk(warningHeader);
+
+        const localResult = await streamOllamaResponse(localFallbackModel, message, profile.systemPrompt, history, onChunk);
+        return warningHeader + localResult;
+      } catch (ollamaErr: any) {
+        console.warn(`[Router] Local Fallback also failed: ${ollamaErr.message}`);
+        const finalWarning = `\n\n[!WARNING] Cloud & Local models unreachable. Falling back to Tactical Engine...\n\n`;
+        onChunk(finalWarning);
+        const tactical = getTacticalFallbackResponse(agentId, message);
+        onChunk(tactical);
+        return finalWarning + tactical;
+      }
+    }
+  }
+
+  // 2b. ROUTE TO GOOGLE GEMINI
   try {
-    console.log(`[Router] Cloud Stream: ${primaryCloudModel} for ${profile.name}`);
-    return await streamGoogleGeminiResponse(primaryCloudModel, message, profile.systemPrompt, history, onChunk);
+    console.log(`[Router] Google AI Stream: ${targetModel} for ${profile.name}`);
+    return await streamGoogleGeminiResponse(targetModel, message, profile.systemPrompt, history, onChunk);
   } catch (cloudErr: any) {
-    console.warn(`[Router] Cloud Google AI (${primaryCloudModel}) failed:`, cloudErr.message);
+    console.warn(`[Router] Cloud Google AI (${targetModel}) failed:`, cloudErr.message);
 
-    // If Cloud Only mode, do not fallback to local
     if (routingMode === 'cloud_only') {
       const errMsg = `\n\n[!ERROR] Google AI Error (${cloudErr.message}). Cloud Only mode active.\n\n`;
       onChunk(errMsg);

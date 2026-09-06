@@ -184,7 +184,7 @@ export type RoutingMode = 'cloud_only' | 'hybrid_fallback' | 'local_only';
 export interface ModelOption {
   id: string;
   name: string;
-  provider: 'google' | 'ollama' | 'builtin' | 'local';
+  provider: 'explabs' | 'google' | 'ollama' | 'builtin' | 'local';
   badge: string;
   description: string;
   isFree: boolean;

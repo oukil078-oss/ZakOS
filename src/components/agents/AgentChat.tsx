@@ -48,7 +48,7 @@ const DEFAULT_PROFILES: AgentProfile[] = [
     color: '#A78BFA',
     role: 'Supreme Mission Commander & Task Dispatcher',
     description: 'Autonomous high-level mission planning, backlog allocation, and multi-agent coordination.',
-    defaultModel: 'gemini-2.5-pro',
+    defaultModel: 'gpt-6-astra',
     fallbackLocalModel: 'qwen2.5:14b',
     systemPrompt: '',
     quickPrompts: [
@@ -65,7 +65,7 @@ const DEFAULT_PROFILES: AgentProfile[] = [
     color: '#F26D6D',
     role: 'Penetration Testing, IIS/WebDAV & CVE Audit Specialist',
     description: 'Offensive cybersecurity, vulnerability enumeration, network reconnaissance, and lab exploitation.',
-    defaultModel: 'gemini-2.5-flash',
+    defaultModel: 'deepseek-v4-flash',
     fallbackLocalModel: 'deepseek-r1:8b',
     systemPrompt: '',
     quickPrompts: [
@@ -82,7 +82,7 @@ const DEFAULT_PROFILES: AgentProfile[] = [
     color: '#7DD3FC',
     role: 'Full-Stack Software Architecture & Monaco Systems',
     description: 'Modern React/TypeScript engineering, state management, Monaco IDE extensions, and Tailwind systems.',
-    defaultModel: 'gemini-2.5-pro',
+    defaultModel: 'claude-fable-5.1',
     fallbackLocalModel: 'deepseek-coder-v2:latest',
     systemPrompt: '',
     quickPrompts: [
@@ -99,7 +99,7 @@ const DEFAULT_PROFILES: AgentProfile[] = [
     color: '#F5B544',
     role: 'Academic Thesis Strategist & Research Synthesis',
     description: 'Graduation capstone supervision, empirical benchmark synthesis, academic literature review, and viva defense.',
-    defaultModel: 'gemini-2.5-pro',
+    defaultModel: 'claude-fable-5.1',
     fallbackLocalModel: 'llama3:8b',
     systemPrompt: '',
     quickPrompts: [
@@ -116,7 +116,7 @@ const DEFAULT_PROFILES: AgentProfile[] = [
     color: '#5EE2B5',
     role: 'Push Protection, Container Hardening & CI/CD Guard',
     description: 'Secret zero enforcement, git hygiene, Docker container hardening, and automated CI/CD pipelines.',
-    defaultModel: 'gemini-2.5-flash',
+    defaultModel: 'gpt-6-astra',
     fallbackLocalModel: 'deepseek-coder-v2:latest',
     systemPrompt: '',
     quickPrompts: [
@@ -185,7 +185,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
 
         const initialMap: Record<string, string> = {};
         DEFAULT_PROFILES.forEach((p) => {
-          initialMap[p.id] = p.defaultModel || 'gemini-2.5-flash';
+          initialMap[p.id] = p.defaultModel || 'gpt-6-astra';
         });
         setAgentModels(initialMap);
       } catch (e) {
@@ -196,12 +196,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
   }, []);
 
   const activeAgent = profiles.find((p) => p.id === selectedAgentId) || profiles[0] || DEFAULT_PROFILES[0];
-  const rawModelId = agentModels[selectedAgentId] || activeAgent?.defaultModel || 'gemini-2.5-flash';
-  const activeModelId =
-    rawModelId === 'gemini-2.0-flash' || rawModelId === 'gemini-1.5-flash' || rawModelId === 'gemini-1.5-pro'
-      ? 'gemini-2.5-flash'
-      : rawModelId;
-
+  const activeModelId = agentModels[selectedAgentId] || activeAgent?.defaultModel || 'gpt-6-astra';
   const activeModelObj = models.find((m) => m.id === activeModelId) || models[0];
 
   const currentMessages = messages[selectedAgentId] || [
@@ -210,11 +205,11 @@ export const AgentChat: React.FC<AgentChatProps> = ({
       role: 'assistant',
       content: `### 🤖 ${activeAgent?.codename || 'ORCH'} // Systems Online & Primed
 Greetings Zakarya. I am **${activeAgent?.name || 'Agent'}** — ${activeAgent?.role}.
-Inference Engine: \`${activeModelObj?.name || 'Gemini 2.5 Pro'}\` • Routing: \`${routingMode}\`.
+Default SOTA Engine: \`${activeModelObj?.name || 'GPT-6 Astra (Primary SOTA)'}\` • Routing: \`${routingMode}\`.
 
 All systems, tools, and Obsidian vault integrations are active. Select an operational directive below or transmit custom instructions.`,
       timestamp: new Date().toLocaleTimeString(),
-      modelUsed: activeModelObj?.name || 'Gemini 2.5 Pro',
+      modelUsed: activeModelObj?.name || 'GPT-6 Astra',
     },
   ];
 
@@ -236,7 +231,7 @@ All systems, tools, and Obsidian vault integrations are active. Select an operat
     try {
       await api.saveApiKey(apiKeyInput.trim());
       setHasApiKey(true);
-      setMaskedApiKey(`${apiKeyInput.slice(0, 6)}...${apiKeyInput.slice(-4)}`);
+      setMaskedApiKey(`${apiKeyInput.slice(0, 8)}...${apiKeyInput.slice(-4)}`);
       setKeySaveSuccess(true);
       setApiKeyInput('');
       setTimeout(() => {
@@ -253,7 +248,7 @@ All systems, tools, and Obsidian vault integrations are active. Select an operat
     const textToSend = (customText || inputPrompt).trim();
     if (!textToSend || isStreaming) return;
 
-    const currentModelId = agentModels[selectedAgentId] || activeAgent?.defaultModel || 'gemini-2.5-flash';
+    const currentModelId = agentModels[selectedAgentId] || activeAgent?.defaultModel || 'gpt-6-astra';
     const currentModelName = models.find((m) => m.id === currentModelId)?.name || currentModelId;
 
     const userMsg: Message = {
@@ -447,10 +442,10 @@ All systems, tools, and Obsidian vault integrations are active. Select an operat
               <div className="flex items-center gap-2 truncate">
                 <Key className="w-3.5 h-3.5 shrink-0" />
                 <span className="text-[11px] font-bold truncate">
-                  {hasApiKey ? `KEY: ${maskedApiKey}` : 'ENTER GEMINI KEY'}
+                  {hasApiKey ? `KEY: ${maskedApiKey}` : 'ENTER API KEY'}
                 </span>
               </div>
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-black/40 border border-white/10 uppercase font-black">
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-black/40 border border-white/10 uppercase font-black text-[#D4FF00]">
                 {hasApiKey ? 'ACTIVE' : 'FREE'}
               </span>
             </button>
@@ -513,7 +508,7 @@ All systems, tools, and Obsidian vault integrations are active. Select an operat
                     ? 'bg-sky-500/20 text-sky-300 font-bold border border-sky-500/40 shadow-sm'
                     : 'text-gray-400 hover:text-white'
                 }`}
-                title="Cloud Only (Google Gemini)"
+                title="Cloud Only (Experiential / Google)"
               >
                 ☁️ Cloud
               </button>
@@ -547,8 +542,17 @@ All systems, tools, and Obsidian vault integrations are active. Select an operat
               <select
                 value={activeModelId}
                 onChange={(e) => handleModelChange(selectedAgentId, e.target.value)}
-                className="bg-transparent text-xs font-mono font-bold text-[#D4FF00] focus:outline-none cursor-pointer max-w-[160px] truncate"
+                className="bg-transparent text-xs font-mono font-bold text-[#D4FF00] focus:outline-none cursor-pointer max-w-[170px] truncate"
               >
+                <optgroup label="✨ Experiential Cloud (Free 1.05M)" className="bg-[#12151B] text-white">
+                  {models
+                    .filter((m) => m.provider === 'explabs')
+                    .map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                </optgroup>
                 <optgroup label="🌟 Google AI Models" className="bg-[#12151B] text-white">
                   {models
                     .filter((m) => m.provider === 'google')
@@ -609,7 +613,7 @@ All systems, tools, and Obsidian vault integrations are active. Select an operat
                       className="font-bold flex items-center gap-1"
                       style={{ color: activeAgent?.color }}
                     >
-                      <Bot className="w-3 h-3" /> {activeAgent?.codename} ({msg.modelUsed || activeModelObj?.name || 'Gemini'})
+                      <Bot className="w-3 h-3" /> {activeAgent?.codename} ({msg.modelUsed || activeModelObj?.name || 'GPT-6 Astra'})
                     </span>
                   )}
                   <span>•</span>
@@ -660,7 +664,7 @@ All systems, tools, and Obsidian vault integrations are active. Select an operat
             <div className="flex items-center gap-2.5 text-xs animate-pulse p-3 rounded-xl bg-white/[0.03] border border-white/10 max-w-md">
               <Sparkles className="w-4 h-4 animate-spin text-[#D4FF00]" />
               <span className="font-mono font-bold text-gray-300">
-                {activeAgent?.codename} ({activeModelObj?.name}) STREAMING RESPONSE...
+                {activeAgent?.codename} ({activeModelObj?.name || 'GPT-6 Astra'}) STREAMING RESPONSE...
               </span>
             </div>
           )}
@@ -700,7 +704,7 @@ All systems, tools, and Obsidian vault integrations are active. Select an operat
               type="text"
               value={inputPrompt}
               onChange={(e) => setInputPrompt(e.target.value)}
-              placeholder={`Transmit instruction to ${activeAgent?.name} [${activeAgent?.codename}] via ${activeModelObj?.name}...`}
+              placeholder={`Transmit instruction to ${activeAgent?.name} [${activeAgent?.codename}] via ${activeModelObj?.name || 'GPT-6 Astra'}...`}
               disabled={isStreaming}
               className="flex-1 bg-[#0B0D10] border border-white/[0.12] rounded-2xl px-4 py-3 text-xs font-mono text-white placeholder-gray-500 focus:outline-none focus:border-[#D4FF00] transition"
             />
@@ -716,7 +720,7 @@ All systems, tools, and Obsidian vault integrations are active. Select an operat
         </div>
       </div>
 
-      {/* 🔑 GOOGLE API KEY MODAL */}
+      {/* 🔑 API KEY MODAL */}
       {isKeyModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
           <div className="w-full max-w-md bg-[#12151B] border border-white/15 rounded-3xl p-6 shadow-2xl space-y-4 font-mono text-xs text-white">
@@ -724,7 +728,7 @@ All systems, tools, and Obsidian vault integrations are active. Select an operat
               <div className="flex items-center gap-2">
                 <Key className="w-5 h-5 text-amber-400" />
                 <h2 className="font-extrabold text-base text-white">
-                  GOOGLE AI STUDIO API KEY
+                  AI INFERENCE API KEYS
                 </h2>
               </div>
               <button
@@ -738,31 +742,22 @@ All systems, tools, and Obsidian vault integrations are active. Select an operat
             <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
               <div className="flex items-center gap-2 text-[#10B981] font-bold text-[11px]">
                 <ShieldCheck className="w-4 h-4" />
-                <span>100% FREE TIER • NO CREDIT CARD REQUIRED</span>
+                <span>EXPERIENTIAL LABS & GOOGLE AI ACTIVE</span>
               </div>
               <p className="text-gray-400 text-[11px] leading-relaxed">
-                Generate an instant free API key at{' '}
-                <a
-                  href="https://aistudio.google.com/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[#D4FF00] underline hover:text-[#c6f500] inline-flex items-center gap-0.5"
-                >
-                  aistudio.google.com <ExternalLink className="w-3 h-3" />
-                </a>
-                . Enables live streaming with <strong>Gemini 2.5 Pro & Flash</strong> with 1,500 free requests per day.
+                Default provider: <strong>Experiential Cloud (GPT-6 Astra, Claude Fable 5.1, DeepSeek V4 Flash)</strong>. Supports 1.05M tokens context. Enter a new key below to update.
               </p>
             </div>
 
             <form onSubmit={handleSaveApiKey} className="space-y-4">
               <div>
-                <label className="block text-gray-400 mb-1.5 font-bold">PASTE GOOGLE AI KEY</label>
+                <label className="block text-gray-400 mb-1.5 font-bold">API KEY (xpl_... OR AIzaSy...)</label>
                 <input
                   type="password"
                   required
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
-                  placeholder={hasApiKey ? `Current: ${maskedApiKey} (Enter new key to update)` : 'AIzaSy...'}
+                  placeholder={hasApiKey ? `Current: ${maskedApiKey} (Enter new key to update)` : 'xpl_...'}
                   className="w-full bg-[#0B0D10] border border-white/15 rounded-xl p-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4FF00] font-mono text-xs"
                 />
               </div>

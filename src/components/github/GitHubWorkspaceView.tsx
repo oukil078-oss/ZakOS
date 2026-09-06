@@ -443,7 +443,7 @@ export const GitHubWorkspaceView: React.FC<GitHubWorkspaceViewProps> = ({
   const renderedReadmeHtml = useMemo(() => {
     if (!readme || !readme.content) return '';
     try {
-      return marked.parse(readme.content);
+      return marked.parse(readme.content, { async: false }) as string;
     } catch {
       return `<pre class="p-4">${readme.content}</pre>`;
     }

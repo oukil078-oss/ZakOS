@@ -433,7 +433,7 @@ export const AgentContentLibraryView: React.FC = () => {
               ) : (
                 <div 
                   className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 leading-relaxed font-sans"
-                  dangerouslySetInnerHTML={{ __html: marked.parse(selectedDoc.content) }}
+                  dangerouslySetInnerHTML={{ __html: marked.parse(selectedDoc.content, { async: false }) as string }}
                 />
               )}
             </div>
