@@ -52,6 +52,14 @@ export class VaultService {
       };
     }
 
+    if (normalized.startsWith('targets/') || normalized.startsWith('targets\\') || normalized.startsWith('targets')) {
+      return {
+        branch: 'certs',
+        branchLabel: '🎯 Targets & OSINT',
+        branchColor: '#EF4444', // Red/Crimson
+      };
+    }
+
     if (normalized.startsWith('02 Coding Projects')) {
       return {
         branch: 'coding',

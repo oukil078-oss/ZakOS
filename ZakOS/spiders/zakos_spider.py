@@ -196,6 +196,85 @@ class ZakosSpider(scrapy.Spider):
             "content_type": headers.get('Content-Type', [''])[0],
         }
 
+        # 5. Robots.txt and sensitive files probing
+        robots_txt_data = {"disallow": [], "allow": [], "sitemaps": [], "raw": ""}
+        sensitive_files = []
+
+        try:
+            r_url = f"{base_origin}/robots.txt"
+            r_req = urllib.request.Request(r_url, headers={'User-Agent': 'Mozilla/5.0 ZakOS-OSINT'})
+            r_text = urllib.request.urlopen(r_req, context=ssl_ctx, timeout=4).read().decode('utf-8', 'ignore')
+            robots_txt_data["raw"] = r_text
+            for line in r_text.splitlines():
+                line = line.strip()
+                if line.lower().startswith('disallow:'):
+                    p = line.split(':', 1)[1].strip()
+                    if p and p not in robots_txt_data["disallow"]:
+                        robots_txt_data["disallow"].append(p)
+                elif line.lower().startswith('allow:'):
+                    p = line.split(':', 1)[1].strip()
+                    if p and p not in robots_txt_data["allow"]:
+                        robots_txt_data["allow"].append(p)
+                elif line.lower().startswith('sitemap:'):
+                    s = line.split(':', 1)[1].strip()
+                    if s and s not in robots_txt_data["sitemaps"]:
+                        robots_txt_data["sitemaps"].append(s)
+
+            sensitive_files.append({
+                "path": "/robots.txt",
+                "url": r_url,
+                "status": 200,
+                "snippet": r_text[:200],
+                "source": "robots.txt",
+                "interesting": True
+            })
+        except Exception:
+            pass
+
+        # Probe high-value sensitive endpoints
+        test_paths = [
+            ("/sitemap_index.xml", "XML Sitemap index"),
+            ("/sitemap.xml", "Standard sitemap"),
+            ("/.well-known/security.txt", "Security contact"),
+            ("/humans.txt", "Developer credits"),
+            ("/README.md", "Project Readme"),
+            ("/.git/HEAD", "Exposed Git repository"),
+            ("/.env.example", "Environment template leak"),
+        ]
+        for d in robots_txt_data["disallow"][:6]:
+            if d.startswith('/'):
+                test_paths.append((d, "Restricted directory in robots.txt"))
+
+        for path_str, reason in test_paths:
+            try:
+                full_test_url = f"{base_origin}{path_str}"
+                t_req = urllib.request.Request(full_test_url, headers={'User-Agent': 'Mozilla/5.0 ZakOS-OSINT'})
+                t_res = urllib.request.urlopen(t_req, context=ssl_ctx, timeout=3)
+                if t_res.status in (200, 301, 302):
+                    t_body = t_res.read().decode('utf-8', 'ignore')
+                    self._extract_emails_from_html(t_body, all_emails)
+                    sensitive_files.append({
+                        "path": path_str,
+                        "url": full_test_url,
+                        "status": t_res.status,
+                        "snippet": t_body[:200].strip(),
+                        "source": "robots.txt" if "robots.txt" in reason else "heuristic",
+                        "interesting": True,
+                        "notes": reason
+                    })
+            except urllib.error.HTTPError as he:
+                if he.code in (403, 401):
+                    sensitive_files.append({
+                        "path": path_str,
+                        "url": f"{base_origin}{path_str}",
+                        "status": he.code,
+                        "source": "heuristic",
+                        "interesting": True,
+                        "notes": f"Restricted endpoint ({he.code})"
+                    })
+            except Exception:
+                pass
+
         # 6. Text content extraction
         paragraphs = response.xpath('//p//text() | //h1//text() | //h2//text() | //h3//text() | //li//text()').getall()
         cleaned_text = ' '.join([p.strip() for p in paragraphs if p.strip()])
@@ -218,7 +297,9 @@ class ZakosSpider(scrapy.Spider):
             osint={
                 "subdomains_detail": subdomains_detail,
                 "crawled_pages": crawled_pages,
-                "root_domain": self.root_domain
+                "root_domain": self.root_domain,
+                "robots_txt": robots_txt_data,
+                "sensitive_files": sensitive_files
             }
         )
 

@@ -21,7 +21,12 @@ import {
   Cpu, 
   Layers,
   Server,
-  MapPin
+  MapPin,
+  FolderTree,
+  FolderSearch,
+  Lock,
+  CheckCircle,
+  FileCode
 } from 'lucide-react';
 import { marked } from 'marked';
 import { ScrapedResult, ThreatAnalysis, CybersecNewsItem } from '../../types';
@@ -31,7 +36,7 @@ interface WebScraperIntelViewProps {
   onSaveToVaultNote: (title: string, content: string, branch: string, category: string) => void;
 }
 
-type ScraperTab = 'intel' | 'emails' | 'subdomains' | 'osint' | 'links' | 'metadata' | 'text' | 'raw';
+type ScraperTab = 'intel' | 'emails' | 'subdomains' | 'folders' | 'osint' | 'links' | 'metadata' | 'text' | 'raw';
 type PipelineMode = 'recon' | 'cve' | 'security' | 'ai';
 
 export const WebScraperIntelView: React.FC<WebScraperIntelViewProps> = ({
@@ -44,6 +49,7 @@ export const WebScraperIntelView: React.FC<WebScraperIntelViewProps> = ({
   const [crawledData, setCrawledData] = useState<ScrapedResult | null>(null);
   const [threatAnalysis, setThreatAnalysis] = useState<ThreatAnalysis | null>(null);
   const [activeTab, setActiveTab] = useState<ScraperTab>('intel');
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [consoleLog, setConsoleLog] = useState<string[]>([]);
   const [subdomainFilter, setSubdomainFilter] = useState('');
@@ -63,10 +69,10 @@ export const WebScraperIntelView: React.FC<WebScraperIntelViewProps> = ({
   const [isAnalyzingItem, setIsAnalyzingItem] = useState(false);
 
   const presets = [
-    'https://example.com',
+    'his.edu.dz',
+    '199.16.129.142',
     'https://owasp.org',
-    'https://thehackernews.com',
-    'https://cisa.gov'
+    'https://thehackernews.com'
   ];
 
   const log = (msg: string) => {
@@ -153,30 +159,92 @@ export const WebScraperIntelView: React.FC<WebScraperIntelViewProps> = ({
   };
 
   const handleSaveAnalysisToVault = () => {
-    if (!threatAnalysis || !crawledData) return;
-    const title = `Scrapy Recon Intel — ${crawledData.domain} [${new Date().toISOString().split('T')[0]}]`;
-    const content = `# Reconnaissance & Threat Intel: ${crawledData.url}
-**Domain:** \`${crawledData.domain}\`  
-**Target Status:** \`${crawledData.metadata.status}\`  
-**Date:** \`${crawledData.scraped_at}\`  
-**Server Banner:** \`${crawledData.metadata.server || 'N/A'}\`
+    if (!crawledData) return;
+    const isIp = Boolean(crawledData.osint?.is_ip);
+    const targetIdentifier = crawledData.domain || (isIp ? (crawledData.osint?.target_ip || 'ip-target') : 'target');
+    const cleanTarget = targetIdentifier.replace(/[^a-zA-Z0-9.-]/g, '_');
+    
+    // User requested: main folder "targets" and subfolder being target domain/ip
+    const targetBranch = `targets/${cleanTarget}`;
+    const title = `Recon-Report`;
 
-## Harvested Reconnaissance Data
-- **Discovered Emails (${crawledData.emails.length}):**
-${crawledData.emails.map(e => '- ' + e).join('\n') || 'None'}
+    const osint = crawledData.osint;
+    const dnsInfo = osint?.dns;
+    const geo = osint?.geo || {};
+    const sslCert = osint?.ssl_cert;
+    const robotsTxt = osint?.robots_txt;
+    const sensitiveFiles = osint?.sensitive_files || [];
+    const threatLvl = threatAnalysis?.threatLevel || 'INFORMATIONAL';
+    const today = new Date().toISOString().split('T')[0];
 
-- **Mapped Subdomains (${crawledData.subdomains.length}):**
-${crawledData.subdomains.map(s => '- ' + s).join('\n') || 'None'}
-
-- **Links Count:** Internal: ${crawledData.links.total_internal} | External: ${crawledData.links.total_external}
+    const content = `
+**Target URL:** \`${crawledData.url}\`  
+**Classification:** \`${isIp ? 'Raw IPv4/IPv6 Host' : 'Registered Domain'}\`  
+**HTTP Status:** \`${crawledData.metadata.status}\` | **Server Header:** \`${crawledData.metadata.server || 'None declared'}\`  
+**Scan Timestamp:** \`${crawledData.scraped_at}\`  
+**Assessed Risk Posture:** \`${threatLvl}\`
 
 ---
 
-## GPT-6 Astra Threat & Surface Assessment
-${threatAnalysis.rawAnalysis}
+## 🌐 Network & Infrastructure OSINT
+| Recon Parameter | Discovered Data |
+|---|---|
+| **Target Address** | \`${osint?.target_ip || (dnsInfo?.a?.[0] || 'N/A')}\` |
+| **Reverse DNS (PTR)** | \`${osint?.reverse_dns?.join(', ') || 'None'}\` |
+| **Autonomous System** | \`${geo.as || 'N/A'}\` |
+| **Hosting ISP / Org** | \`${geo.isp || 'N/A'}\` — \`${geo.org || 'N/A'}\` |
+| **Physical Geolocation** | \`${geo.city || 'N/A'}, ${geo.country || 'N/A'}\` |
+| **Nameservers (NS)** | \`${dnsInfo?.ns?.join(', ') || 'N/A'}\` |
+| **Mail Routing (MX)** | \`${dnsInfo?.mx?.map(m => `${m.exchange} (pri: ${m.priority})`).join(', ') || 'N/A'}\` |
+| **TXT / SPF Origin** | \`${dnsInfo?.txt?.join(' \| ') || 'N/A'}\` |
+
+---
+
+## 🔒 SSL / TLS Certificate Recon
+- **Common Name (CN):** \`${sslCert?.cn || 'N/A'}\`
+- **Issuer Authority:** \`${sslCert?.issuer || 'N/A'}\`
+- **Valid Window:** \`${sslCert?.validFrom || 'N/A'}\` to \`${sslCert?.validTo || 'N/A'}\`
+- **Subject Alternative Names (SANs / Associated Hostnames):**
+${sslCert?.sans && sslCert.sans.length > 0 ? sslCert.sans.map(s => `- \`${s}\``).join('\n') : '- None recorded'}
+
+---
+
+## 📂 Robots.txt & Folder Digging Audit
+- **Disallowed Directories (${robotsTxt?.disallow?.length || 0}):**
+${robotsTxt?.disallow && robotsTxt.disallow.length > 0 ? robotsTxt.disallow.map(p => `- \`${p}\``).join('\n') : '- None declared'}
+
+- **Discovered Sitemaps (${robotsTxt?.sitemaps?.length || 0}):**
+${robotsTxt?.sitemaps && robotsTxt.sitemaps.length > 0 ? robotsTxt.sitemaps.map(s => `- [${s}](${s})`).join('\n') : '- None declared'}
+
+### 🔍 Sensitive Files & Endpoints Matrix (${sensitiveFiles.length})
+| Path | Status | Source | Findings / Notes |
+|---|---|---|---|
+${sensitiveFiles.length > 0 ? sensitiveFiles.map(f => `| \`${f.path}\` | \`${f.status}\` | \`${f.source}\` | ${(f.notes || f.snippet || 'Accessible').slice(0, 80).replace(/\|/g, '\\|')} |`).join('\n') : '| None | - | - | - |'}
+
+---
+
+## 👥 Harvested Personnel & Contact Emails (${crawledData.emails.length})
+${crawledData.emails.length > 0 ? crawledData.emails.map(e => `- 📧 \`${e}\``).join('\n') : '- Zero personnel emails harvested'}
+
+---
+
+## 🗺️ Discovered Subdomains & Hostnames (${crawledData.subdomains.length})
+| Subdomain / Host | IP Address | Source |
+|---|---|---|
+${crawledData.subdomains.length > 0 ? crawledData.subdomains.map(s => {
+  const detail = osint?.subdomains_detail?.find(d => d.subdomain === s);
+  return `| [${s}](https://${s}) | \`${detail?.ip || 'Resolved'}\` | \`${detail?.source || 'crawl'}\` |`;
+}).join('\n') : '| None | - | - |'}
+
+---
+
+## 🧠 GPT-6 Astra Threat & Surface Assessment
+${threatAnalysis ? threatAnalysis.rawAnalysis : '*Threat triage not run yet.*'}
 `;
 
-    onSaveToVaultNote(title, content, '01 Certifications/EJPT Certification/Notes', 'recon');
+    onSaveToVaultNote(title, content, targetBranch, 'target-intel');
+    setSaveSuccessMsg(`${targetBranch}/${title}.md`);
+    setTimeout(() => setSaveSuccessMsg(null), 6000);
   };
 
   return (
@@ -373,6 +441,23 @@ ${threatAnalysis.rawAnalysis}
                     </button>
 
                     <button
+                      onClick={() => setActiveTab('folders')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                        activeTab === 'folders'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <FolderTree className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Robots & Files ({crawledData.osint?.sensitive_files?.length || 0})</span>
+                      {crawledData.osint?.robots_txt?.disallow && crawledData.osint.robots_txt.disallow.length > 0 && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded font-black bg-rose-500/30 text-rose-300">
+                          {crawledData.osint.robots_txt.disallow.length} Disallow
+                        </span>
+                      )}
+                    </button>
+
+                    <button
                       onClick={() => setActiveTab('osint')}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                         activeTab === 'osint'
@@ -438,15 +523,22 @@ ${threatAnalysis.rawAnalysis}
                     </button>
                   </div>
 
-                  {threatAnalysis && (
+                  <div className="flex items-center gap-2">
+                    {saveSuccessMsg && (
+                      <div className="px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold flex items-center gap-1.5 animate-pulse">
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span>Saved: {saveSuccessMsg}</span>
+                      </div>
+                    )}
                     <button
                       onClick={handleSaveAnalysisToVault}
-                      className="px-3 py-1 rounded-xl bg-[#D4FF00]/15 hover:bg-[#D4FF00]/25 text-[#D4FF00] border border-[#D4FF00]/30 transition flex items-center gap-1.5 shrink-0"
+                      className="px-3 py-1.5 rounded-xl bg-[#D4FF00] hover:bg-[#c6f500] text-black font-extrabold transition flex items-center gap-1.5 shadow-[0_0_15px_rgba(212,255,0,0.3)] shrink-0 active:scale-95 text-xs"
+                      title="Save full target dossier to Obsidian Vault under targets/<target>/Recon-Report.md"
                     >
                       <Save className="w-3.5 h-3.5" />
-                      <span>SAVE TO OBSIDIAN NOTE</span>
+                      <span>SAVE TARGET TO OBSIDIAN</span>
                     </button>
-                  )}
+                  </div>
                 </div>
 
                 {/* Subtab Content Area */}
@@ -665,9 +757,296 @@ ${threatAnalysis.rawAnalysis}
                     </div>
                   )}
 
-                  {/* 4. DNS & OSINT RECON */}
+                                    {/* 3.5 ROBOTS.TXT & FOLDER DIGGING */}
+                  {activeTab === 'folders' && (
+                    <div className="space-y-4">
+                      {/* Summary Stat Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-between">
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Robots.txt Rules</span>
+                            <div className="text-xl font-black text-rose-400 mt-0.5">
+                              {crawledData.osint?.robots_txt?.disallow?.length || 0} Disallowed
+                            </div>
+                          </div>
+                          <div className="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                            <ShieldAlert className="w-4 h-4" />
+                          </div>
+                        </div>
+
+                        <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-between">
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Discovered Sitemaps</span>
+                            <div className="text-xl font-black text-amber-400 mt-0.5">
+                              {crawledData.osint?.robots_txt?.sitemaps?.length || 0} XML Index
+                            </div>
+                          </div>
+                          <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                            <Globe className="w-4 h-4" />
+                          </div>
+                        </div>
+
+                        <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-between">
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Probed Endpoints</span>
+                            <div className="text-xl font-black text-emerald-400 mt-0.5">
+                              {crawledData.osint?.sensitive_files?.length || 0} Probed
+                            </div>
+                          </div>
+                          <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                            <FolderTree className="w-4 h-4" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 1: Robots.txt Disallowed Directives */}
+                      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <ShieldAlert className="w-4 h-4 text-rose-400" />
+                            <h4 className="font-bold text-gray-200">Robots.txt Disallow Directives (Hidden / Restricted Paths)</h4>
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-bold">
+                            {crawledData.osint?.robots_txt?.disallow?.length || 0} Paths Declared
+                          </span>
+                        </div>
+
+                        {crawledData.osint?.robots_txt?.disallow && crawledData.osint.robots_txt.disallow.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {crawledData.osint.robots_txt.disallow.map((p, idx) => {
+                              const targetLink = new URL(p, crawledData.url).toString();
+                              return (
+                                <div key={idx} className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between group hover:border-rose-500/30 transition">
+                                  <div className="flex items-center gap-2 overflow-hidden">
+                                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                                    <span className="font-mono text-xs text-rose-300 truncate">{p}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                                    <button
+                                      onClick={() => handleCopy(`disallow-${idx}`, targetLink)}
+                                      className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition"
+                                      title="Copy URL"
+                                    >
+                                      {copiedKey === `disallow-${idx}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                                    </button>
+                                    <a
+                                      href={targetLink}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="p-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition"
+                                      title="Open Path in Browser"
+                                    >
+                                      <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-500 italic">No Disallow rules declared in robots.txt.</p>
+                        )}
+
+                        {/* Sitemaps */}
+                        {crawledData.osint?.robots_txt?.sitemaps && crawledData.osint.robots_txt.sitemaps.length > 0 && (
+                          <div className="pt-3 border-t border-white/[0.06] space-y-2">
+                            <span className="text-[11px] text-gray-400 font-bold flex items-center gap-1.5">
+                              <Globe className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Sitemaps Declared in Robots.txt:</span>
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                              {crawledData.osint.robots_txt.sitemaps.map((sm, sIdx) => (
+                                <a
+                                  key={sIdx}
+                                  href={sm}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-1.5 hover:bg-amber-500/20 transition"
+                                >
+                                  <span className="truncate max-w-[280px]">{sm}</span>
+                                  <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Section 2: Deep Folder Digging & Sensitive Files Matrix */}
+                      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <FolderSearch className="w-4 h-4 text-emerald-400" />
+                            <h4 className="font-bold text-gray-200">Discovered Folders & Exposed Text Files</h4>
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-bold">
+                            {crawledData.osint?.sensitive_files?.length || 0} Endpoints Probed
+                          </span>
+                        </div>
+
+                        {crawledData.osint?.sensitive_files && crawledData.osint.sensitive_files.length > 0 ? (
+                          <div className="space-y-2">
+                            {crawledData.osint.sensitive_files.map((file, fIdx) => (
+                              <div
+                                key={fIdx}
+                                className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/20 transition flex flex-col gap-2"
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                                      file.status === 200 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
+                                      file.status === 403 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' :
+                                      file.status === 401 ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' :
+                                      file.status === 301 || file.status === 302 ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40' :
+                                      'bg-gray-500/20 text-gray-400'
+                                    }`}>
+                                      HTTP {file.status}
+                                    </span>
+                                    <span className="font-mono font-bold text-white text-xs">{file.path}</span>
+                                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/5 text-gray-400 border border-white/10 uppercase">
+                                      {file.source}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      onClick={() => handleCopy(`file-${fIdx}`, file.url)}
+                                      className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition"
+                                      title="Copy Endpoint URL"
+                                    >
+                                      {copiedKey === `file-${fIdx}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                                    </button>
+                                    <a
+                                      href={file.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="p-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition"
+                                      title="Open Endpoint"
+                                    >
+                                      <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                  </div>
+                                </div>
+
+                                {file.notes && (
+                                  <div className="text-[11px] text-gray-400">
+                                    {file.notes}
+                                  </div>
+                                )}
+
+                                {file.snippet && (
+                                  <div className="p-2 rounded-lg bg-black/50 border border-white/[0.04] text-[11px] font-mono text-gray-300 overflow-x-auto max-h-24">
+                                    <code>{file.snippet}</code>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="py-8 text-center text-gray-500 text-xs">
+                            No sensitive folders or files discovered on target.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+{/* 4. DNS & OSINT RECON */}
                   {activeTab === 'osint' && (
                     <div className="space-y-4">
+                      {/* Target Classification & Network Identity Banner */}
+                      <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 font-black">
+                            {crawledData.osint?.is_ip ? 'IP' : 'DOM'}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-extrabold text-sm text-white font-mono">{crawledData.domain}</span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded font-black uppercase ${
+                                crawledData.osint?.is_ip 
+                                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' 
+                                  : 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+                              }`}>
+                                {crawledData.osint?.is_ip ? 'Raw Host IP Target' : 'Registered Domain'}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-gray-400 font-mono">
+                              Resolved Target IP: {crawledData.osint?.target_ip || (crawledData.osint?.dns?.a?.[0] || 'N/A')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {crawledData.osint?.reverse_dns && crawledData.osint.reverse_dns.length > 0 && (
+                          <div className="flex items-center gap-2 p-2 rounded-xl bg-white/[0.03] border border-white/10">
+                            <span className="text-[10px] text-gray-400 font-bold uppercase">PTR (Reverse DNS):</span>
+                            <span className="font-mono text-xs text-amber-300 font-bold">{crawledData.osint.reverse_dns.join(', ')}</span>
+                            <button
+                              onClick={() => handleCopy('rev-dns', crawledData.osint!.reverse_dns!.join(', '))}
+                              className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white"
+                              title="Copy Reverse DNS"
+                            >
+                              {copiedKey === 'rev-dns' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* SSL / TLS Certificate Recon Card */}
+                      {crawledData.osint?.ssl_cert && (
+                        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+                              <Lock className="w-4 h-4" />
+                              <span>SSL / TLS CERTIFICATE & HOSTNAMES (SANs)</span>
+                            </div>
+                            <span className="text-[10px] text-gray-500">Port 443 Handshake</span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                            <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                              <span className="text-[10px] text-gray-500 block">SUBJECT COMMON NAME (CN)</span>
+                              <span className="font-mono text-white font-bold">{crawledData.osint.ssl_cert.cn || 'None'}</span>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                              <span className="text-[10px] text-gray-500 block">ISSUER AUTHORITY</span>
+                              <span className="font-mono text-white font-bold truncate block">{crawledData.osint.ssl_cert.issuer || 'N/A'}</span>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                              <span className="text-[10px] text-gray-500 block">VALIDITY WINDOW</span>
+                              <span className="font-mono text-gray-300 text-[11px] block">
+                                {crawledData.osint.ssl_cert.validFrom ? new Date(crawledData.osint.ssl_cert.validFrom).toLocaleDateString() : 'N/A'} - {crawledData.osint.ssl_cert.validTo ? new Date(crawledData.osint.ssl_cert.validTo).toLocaleDateString() : 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {crawledData.osint.ssl_cert.sans && crawledData.osint.ssl_cert.sans.length > 0 && (
+                            <div className="space-y-1.5 pt-1">
+                              <span className="text-[10px] text-gray-400 font-bold uppercase">
+                                Subject Alternative Names / Associated Hostnames ({crawledData.osint.ssl_cert.sans.length}):
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {crawledData.osint.ssl_cert.sans.map((san, sanIdx) => (
+                                  <span
+                                    key={sanIdx}
+                                    className="px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-mono text-[11px] flex items-center gap-1"
+                                  >
+                                    <span>{san}</span>
+                                    <button
+                                      onClick={() => handleCopy(`san-${sanIdx}`, san)}
+                                      className="hover:text-white"
+                                      title="Copy SAN"
+                                    >
+                                      {copiedKey === `san-${sanIdx}` ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Geo & Host Card */}
                       {crawledData.osint?.geo && (
                         <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">

@@ -420,8 +420,43 @@ export interface SubdomainDetail {
   source?: string;
 }
 
+export interface SensitiveFileFinding {
+  path: string;
+  url: string;
+  status: number;
+  contentType?: string;
+  size?: number;
+  snippet?: string;
+  source: 'robots.txt' | 'heuristic' | 'directory_listing' | 'sitemap';
+  emails_found?: string[];
+  interesting: boolean;
+  notes?: string;
+}
+
+export interface RobotsTxtData {
+  disallow: string[];
+  allow: string[];
+  sitemaps: string[];
+  raw?: string;
+}
+
+export interface SslCertInfo {
+  cn?: string;
+  sans?: string[];
+  issuer?: string;
+  validFrom?: string;
+  validTo?: string;
+  serialNumber?: string;
+}
+
 export interface OsintReconData {
   root_domain?: string;
+  is_ip?: boolean;
+  target_ip?: string;
+  reverse_dns?: string[];
+  ssl_cert?: SslCertInfo;
+  robots_txt?: RobotsTxtData;
+  sensitive_files?: SensitiveFileFinding[];
   subdomains_detail?: SubdomainDetail[];
   crawled_pages?: string[];
   dns?: {
