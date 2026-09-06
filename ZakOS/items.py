@@ -9,6 +9,7 @@ class ZakosWebItem(scrapy.Item):
     links = scrapy.Field()
     text = scrapy.Field()
     scraped_at = scrapy.Field()
+    osint = scrapy.Field()
 
 class CybersecNewsItem(scrapy.Item):
     cve_id = scrapy.Field()

@@ -414,6 +414,32 @@ export interface GitHubReadme {
 }
 
 // Scrapy & Web Scraper Intel Types
+export interface SubdomainDetail {
+  subdomain: string;
+  ip?: string;
+  source?: string;
+}
+
+export interface OsintReconData {
+  root_domain?: string;
+  subdomains_detail?: SubdomainDetail[];
+  crawled_pages?: string[];
+  dns?: {
+    a?: string[];
+    mx?: { exchange: string; priority: number }[];
+    txt?: string[];
+    ns?: string[];
+  };
+  geo?: {
+    query?: string;
+    country?: string;
+    city?: string;
+    isp?: string;
+    org?: string;
+    as?: string;
+  };
+}
+
 export interface ScrapedResult {
   url: string;
   domain: string;
@@ -436,6 +462,7 @@ export interface ScrapedResult {
   };
   text: string;
   scraped_at: string;
+  osint?: OsintReconData;
 }
 
 export interface ThreatAnalysis {

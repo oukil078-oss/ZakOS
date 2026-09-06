@@ -19,7 +19,9 @@ import {
   ShieldCheck, 
   Newspaper, 
   Cpu, 
-  Layers
+  Layers,
+  Server,
+  MapPin
 } from 'lucide-react';
 import { marked } from 'marked';
 import { ScrapedResult, ThreatAnalysis, CybersecNewsItem } from '../../types';
@@ -29,7 +31,7 @@ interface WebScraperIntelViewProps {
   onSaveToVaultNote: (title: string, content: string, branch: string, category: string) => void;
 }
 
-type ScraperTab = 'intel' | 'emails' | 'subdomains' | 'links' | 'metadata' | 'text' | 'raw';
+type ScraperTab = 'intel' | 'emails' | 'subdomains' | 'osint' | 'links' | 'metadata' | 'text' | 'raw';
 type PipelineMode = 'recon' | 'cve' | 'security' | 'ai';
 
 export const WebScraperIntelView: React.FC<WebScraperIntelViewProps> = ({
@@ -44,6 +46,15 @@ export const WebScraperIntelView: React.FC<WebScraperIntelViewProps> = ({
   const [activeTab, setActiveTab] = useState<ScraperTab>('intel');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [consoleLog, setConsoleLog] = useState<string[]>([]);
+  const [subdomainFilter, setSubdomainFilter] = useState('');
+  const [emailFilter, setEmailFilter] = useState('');
+
+  const filteredEmails = (crawledData?.emails || []).filter(e => 
+    e.toLowerCase().includes(emailFilter.toLowerCase())
+  );
+  const filteredSubdomains = (crawledData?.subdomains || []).filter(s => 
+    s.toLowerCase().includes(subdomainFilter.toLowerCase())
+  );
 
   // News Pipeline State
   const [newsItems, setNewsItems] = useState<CybersecNewsItem[]>([]);
@@ -362,6 +373,23 @@ ${threatAnalysis.rawAnalysis}
                     </button>
 
                     <button
+                      onClick={() => setActiveTab('osint')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                        activeTab === 'osint'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <Globe className="w-3.5 h-3.5 text-amber-400" />
+                      <span>DNS & OSINT</span>
+                      {crawledData.osint?.dns?.mx && crawledData.osint.dns.mx.length > 0 && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded font-black bg-amber-500/30 text-amber-300">
+                          {crawledData.osint.dns.mx.length} MX
+                        </span>
+                      )}
+                    </button>
+
+                    <button
                       onClick={() => setActiveTab('links')}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                         activeTab === 'links'
@@ -465,44 +493,83 @@ ${threatAnalysis.rawAnalysis}
                   {/* 2. EMAILS DISCOVERED */}
                   {activeTab === 'emails' && (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                        <span className="text-xs text-gray-400">
-                          Discovered <strong>{crawledData.emails.length}</strong> personnel & contact emails:
-                        </span>
-                        {crawledData.emails.length > 0 && (
-                          <button
-                            onClick={() => handleCopy('all-emails', crawledData.emails.join('\n'))}
-                            className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 flex items-center gap-1.5"
-                          >
-                            {copiedKey === 'all-emails' ? <Check className="w-3 h-3 text-[#10B981]" /> : <Copy className="w-3 h-3" />}
-                            <span>COPY ALL</span>
-                          </button>
-                        )}
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
+                        <div>
+                          <span className="text-xs text-gray-400">
+                            Discovered <strong>{crawledData.emails.length}</strong> personnel & contact emails:
+                          </span>
+                          {crawledData.osint?.crawled_pages && (
+                            <span className="text-[10px] text-sky-400 ml-2">
+                              (Scraped across {crawledData.osint.crawled_pages.length} deep recon pages)
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <div className="relative flex-1 sm:w-48">
+                            <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-2.5" />
+                            <input
+                              type="text"
+                              value={emailFilter}
+                              onChange={(e) => setEmailFilter(e.target.value)}
+                              placeholder="Filter emails..."
+                              className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-8 pr-2.5 py-1 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-sky-500"
+                            />
+                          </div>
+                          {crawledData.emails.length > 0 && (
+                            <button
+                              onClick={() => handleCopy('all-emails', crawledData.emails.join('\n'))}
+                              className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 flex items-center gap-1.5 shrink-0"
+                            >
+                              {copiedKey === 'all-emails' ? <Check className="w-3 h-3 text-[#10B981]" /> : <Copy className="w-3 h-3" />}
+                              <span>COPY ALL</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      {crawledData.emails.length > 0 ? (
+                      {filteredEmails.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                          {crawledData.emails.map((email, idx) => (
-                            <div
-                              key={idx}
-                              className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.08] flex items-center justify-between group hover:border-sky-500/40 transition"
-                            >
-                              <div className="flex items-center gap-2 truncate">
-                                <Mail className="w-4 h-4 text-sky-400 shrink-0" />
-                                <span className="font-mono text-xs text-white truncate">{email}</span>
-                              </div>
-                              <button
-                                onClick={() => handleCopy('email-' + idx, email)}
-                                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition"
+                          {filteredEmails.map((email, idx) => {
+                            const isPersonnel = !email.startsWith('contact@') && !email.startsWith('info@') && !email.startsWith('admin@');
+                            return (
+                              <div
+                                key={idx}
+                                className={`p-3 rounded-xl bg-white/[0.02] border flex items-center justify-between group transition ${
+                                  isPersonnel ? 'border-sky-500/30 hover:border-sky-500/70 bg-sky-500/[0.02]' : 'border-white/[0.08] hover:border-white/20'
+                                }`}
                               >
-                                {copiedKey === 'email-' + idx ? <Check className="w-3 h-3 text-[#10B981]" /> : <Copy className="w-3 h-3" />}
-                              </button>
-                            </div>
-                          ))}
+                                <div className="flex items-center gap-2.5 truncate">
+                                  <Mail className={`w-4 h-4 shrink-0 ${isPersonnel ? 'text-sky-400' : 'text-gray-400'}`} />
+                                  <div className="truncate">
+                                    <span className="font-mono text-xs text-white font-semibold block truncate">{email}</span>
+                                    <span className="text-[9px] text-gray-400">
+                                      {isPersonnel ? 'Target Personnel / Executive' : 'Department Contact / Role'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0 ml-2">
+                                  <a
+                                    href={`mailto:${email}`}
+                                    className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-sky-400 transition"
+                                    title="Send Email"
+                                  >
+                                    <Mail className="w-3.5 h-3.5" />
+                                  </a>
+                                  <button
+                                    onClick={() => handleCopy('email-' + idx, email)}
+                                    className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition"
+                                    title="Copy Email"
+                                  >
+                                    {copiedKey === 'email-' + idx ? <Check className="w-3 h-3 text-[#10B981]" /> : <Copy className="w-3 h-3" />}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="py-12 text-center text-gray-500">
-                          No exposed emails found on target landing page.
+                          {crawledData.emails.length === 0 ? 'No exposed emails found on target landing page.' : 'No emails match the filter.'}
                         </div>
                       )}
                     </div>
@@ -511,44 +578,225 @@ ${threatAnalysis.rawAnalysis}
                   {/* 3. MAPPED SUBDOMAINS */}
                   {activeTab === 'subdomains' && (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
                         <span className="text-xs text-gray-400">
-                          Identified <strong>{crawledData.subdomains.length}</strong> related subdomains:
+                          Discovered <strong>{crawledData.subdomains.length}</strong> related subdomains via OSINT & Crawling:
                         </span>
-                        {crawledData.subdomains.length > 0 && (
-                          <button
-                            onClick={() => handleCopy('all-subdomains', crawledData.subdomains.join('\n'))}
-                            className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 flex items-center gap-1.5"
-                          >
-                            {copiedKey === 'all-subdomains' ? <Check className="w-3 h-3 text-[#10B981]" /> : <Copy className="w-3 h-3" />}
-                            <span>COPY ALL</span>
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <div className="relative flex-1 sm:w-48">
+                            <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-2.5" />
+                            <input
+                              type="text"
+                              value={subdomainFilter}
+                              onChange={(e) => setSubdomainFilter(e.target.value)}
+                              placeholder="Filter subdomains..."
+                              className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-8 pr-2.5 py-1 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                            />
+                          </div>
+                          {crawledData.subdomains.length > 0 && (
+                            <button
+                              onClick={() => handleCopy('all-subdomains', crawledData.subdomains.join('\n'))}
+                              className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 flex items-center gap-1.5 shrink-0"
+                            >
+                              {copiedKey === 'all-subdomains' ? <Check className="w-3 h-3 text-[#10B981]" /> : <Copy className="w-3 h-3" />}
+                              <span>COPY ALL</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      {crawledData.subdomains.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                          {crawledData.subdomains.map((sub, idx) => (
-                            <div
-                              key={idx}
-                              className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.08] flex items-center justify-between group hover:border-purple-500/40 transition"
-                            >
-                              <div className="flex items-center gap-2 truncate">
-                                <Network className="w-4 h-4 text-purple-400 shrink-0" />
-                                <span className="font-mono text-xs text-white truncate">{sub}</span>
-                              </div>
-                              <button
-                                onClick={() => handleCopy('sub-' + idx, sub)}
-                                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition"
+                      {filteredSubdomains.length > 0 ? (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+                          {filteredSubdomains.map((sub, idx) => {
+                            const detail = crawledData.osint?.subdomains_detail?.find(d => d.subdomain.toLowerCase() === sub.toLowerCase());
+                            const isTalentOrPortal = /(talent|portal|student|career|apply|exam|attendance|email|mail)/i.test(sub);
+                            return (
+                              <div
+                                key={idx}
+                                className={`p-3 rounded-xl bg-white/[0.02] border flex items-center justify-between group transition ${
+                                  isTalentOrPortal ? 'border-purple-500/30 hover:border-purple-500/70 bg-purple-500/[0.03]' : 'border-white/[0.08] hover:border-white/20'
+                                }`}
                               >
-                                {copiedKey === 'sub-' + idx ? <Check className="w-3 h-3 text-[#10B981]" /> : <Copy className="w-3 h-3" />}
-                              </button>
-                            </div>
-                          ))}
+                                <div className="flex items-center gap-2.5 truncate">
+                                  <Network className={`w-4 h-4 shrink-0 ${isTalentOrPortal ? 'text-purple-400' : 'text-gray-400'}`} />
+                                  <div className="truncate">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-mono text-xs text-white font-semibold truncate">{sub}</span>
+                                      {detail?.ip && (
+                                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/5 text-gray-400 border border-white/10 shrink-0">
+                                          {detail.ip}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {detail?.source && (
+                                      <span className="text-[9px] text-purple-400/80 uppercase">
+                                        Source: {detail.source}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0 ml-2">
+                                  <a
+                                    href={`https://${sub}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-[#D4FF00] transition"
+                                    title="Open Subdomain in New Tab"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </a>
+                                  <button
+                                    onClick={() => handleCopy('sub-' + idx, sub)}
+                                    className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition"
+                                    title="Copy Subdomain"
+                                  >
+                                    {copiedKey === 'sub-' + idx ? <Check className="w-3 h-3 text-[#10B981]" /> : <Copy className="w-3 h-3" />}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="py-12 text-center text-gray-500">
-                          No separate subdomains referenced in hyperlinks.
+                          {crawledData.subdomains.length === 0 ? 'No separate subdomains referenced in hyperlinks.' : 'No subdomains match the filter.'}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 4. DNS & OSINT RECON */}
+                  {activeTab === 'osint' && (
+                    <div className="space-y-4">
+                      {/* Geo & Host Card */}
+                      {crawledData.osint?.geo && (
+                        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                          <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                            <MapPin className="w-4 h-4" />
+                            <span>GEOLOCATION & AUTONOMOUS SYSTEM (ASN)</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                            <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                              <span className="text-[10px] text-gray-500 block">PRIMARY IP</span>
+                              <span className="font-mono text-white font-bold">{crawledData.osint.geo.query}</span>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                              <span className="text-[10px] text-gray-500 block">LOCATION</span>
+                              <span className="font-mono text-white font-bold">{crawledData.osint.geo.city}, {crawledData.osint.geo.country}</span>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                              <span className="text-[10px] text-gray-500 block">ISP / HOST</span>
+                              <span className="font-mono text-white font-bold truncate block">{crawledData.osint.geo.isp}</span>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                              <span className="text-[10px] text-gray-500 block">ASN ROUTING</span>
+                              <span className="font-mono text-white font-bold truncate block">{crawledData.osint.geo.as}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* DNS Records Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* MX Mail Servers */}
+                        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xs text-sky-400 flex items-center gap-1.5">
+                              <Server className="w-4 h-4" />
+                              <span>MX MAIL SERVERS ({crawledData.osint?.dns?.mx?.length || 0})</span>
+                            </span>
+                            <span className="text-[10px] text-gray-500">Direct Email Routing</span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {crawledData.osint?.dns?.mx && crawledData.osint.dns.mx.length > 0 ? (
+                              crawledData.osint.dns.mx.map((m, idx) => (
+                                <div key={idx} className="p-2 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between font-mono text-xs">
+                                  <span className="text-white truncate">{m.exchange}</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold">
+                                    Pri: {m.priority}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-gray-500 text-xs py-2">No MX records returned.</div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Nameservers */}
+                        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xs text-purple-400 flex items-center gap-1.5">
+                              <Globe className="w-4 h-4" />
+                              <span>NAMESERVERS (NS) ({crawledData.osint?.dns?.ns?.length || 0})</span>
+                            </span>
+                            <span className="text-[10px] text-gray-500">DNS Authority</span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {crawledData.osint?.dns?.ns && crawledData.osint.dns.ns.length > 0 ? (
+                              crawledData.osint.dns.ns.map((ns, idx) => (
+                                <div key={idx} className="p-2 rounded-xl bg-white/[0.03] border border-white/5 font-mono text-xs text-white truncate">
+                                  {ns}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-gray-500 text-xs py-2">No NS records returned.</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* TXT / SPF Records */}
+                      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-[#D4FF00] flex items-center gap-1.5">
+                            <ShieldAlert className="w-4 h-4" />
+                            <span>TXT / SPF / DMARC & VERIFICATION POLICIES</span>
+                          </span>
+                          <span className="text-[10px] text-gray-500">Origin Leak & Mail Security</span>
+                        </div>
+                        <div className="space-y-2">
+                          {crawledData.osint?.dns?.txt && crawledData.osint.dns.txt.length > 0 ? (
+                            crawledData.osint.dns.txt.map((txt, idx) => {
+                              const isSpf = txt.toLowerCase().startsWith('v=spf1');
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`p-2.5 rounded-xl font-mono text-xs break-all border ${
+                                    isSpf ? 'bg-[#D4FF00]/10 border-[#D4FF00]/30 text-[#D4FF00]' : 'bg-white/[0.03] border-white/5 text-gray-300'
+                                  }`}
+                                >
+                                  {isSpf && <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#D4FF00] text-black font-black mr-2 uppercase">SPF POLICY</span>}
+                                  {txt}
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className="text-gray-500 text-xs py-2">No TXT records discovered.</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Crawled Recon Footprint */}
+                      {crawledData.osint?.crawled_pages && (
+                        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xs text-emerald-400 flex items-center gap-1.5">
+                              <Layers className="w-4 h-4" />
+                              <span>CRAWLED RECON TARGET FOOTPRINT ({crawledData.osint.crawled_pages.length})</span>
+                            </span>
+                            <span className="text-[10px] text-gray-500">Contact & Portal Crawl Path</span>
+                          </div>
+                          <div className="space-y-1">
+                            {crawledData.osint.crawled_pages.map((p, idx) => (
+                              <div key={idx} className="p-2 rounded-lg bg-white/[0.02] border border-white/5 font-mono text-[11px] text-gray-300 flex items-center justify-between">
+                                <span className="truncate">{p}</span>
+                                <a href={p} target="_blank" rel="noreferrer" className="text-gray-500 hover:text-emerald-400 ml-2">
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
