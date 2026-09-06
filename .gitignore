@@ -2,6 +2,11 @@
 node_modules/
 .pnp
 .pnp.js
+.venv/
+venv/
+__pycache__/
+*.pyc
+.scrapy/
 
 # Environment Variables & Secrets
 .env
