@@ -19,6 +19,7 @@ import {
 } from './agent';
 import { projectService } from './projectService';
 import { githubService } from './githubService';
+import { scraperService } from './scraperService';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -356,7 +357,58 @@ app.post('/api/local-model', async (req: Request, res: Response) => {
   }
 });
 
-// 13. Terminal Execution & Background Daemon Server Endpoints
+// 13. Scrapy Project & Web Scraper / Threat Intelligence Endpoints
+app.post('/api/scraper/crawl', async (req: Request, res: Response) => {
+  try {
+    const { url, spider = 'zakos' } = req.body;
+    const items = await scraperService.crawl(spider, url);
+    res.json({ success: true, items });
+  } catch (error: any) {
+    console.error('[Scraper Error]:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/scraper/analyze', async (req: Request, res: Response) => {
+  try {
+    const { item } = req.body;
+    if (!item) {
+      return res.status(400).json({ success: false, error: 'Missing scraped item' });
+    }
+    const analysis = await scraperService.analyzeWithGpt6Astra(item);
+    res.json({ success: true, analysis });
+  } catch (error: any) {
+    console.error('[Analysis Error]:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/scraper/news', async (req: Request, res: Response) => {
+  try {
+    const spider = (req.query.spider as string) || 'cve_feed';
+    const items = await scraperService.crawl(spider);
+    res.json({ success: true, items });
+  } catch (error: any) {
+    console.error('[News Scraper Error]:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/scraper/analyze-item', async (req: Request, res: Response) => {
+  try {
+    const { item } = req.body;
+    if (!item) {
+      return res.status(400).json({ success: false, error: 'Missing item' });
+    }
+    const briefing = await scraperService.analyzeCybersecItem(item);
+    res.json({ success: true, briefing });
+  } catch (error: any) {
+    console.error('[Item Analysis Error]:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 14. Terminal Execution & Background Daemon Server Endpoints
 app.post('/api/project/terminal/exec', async (req: Request, res: Response) => {
   try {
     const { command, cwd = process.cwd() } = req.body;

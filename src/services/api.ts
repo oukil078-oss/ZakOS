@@ -15,7 +15,10 @@ import {
   GitHubFileDetail,
   GitHubCommitItem,
   GitHubContributorItem,
-  GitHubReadme
+  GitHubReadme,
+  ScrapedResult,
+  ThreatAnalysis,
+  CybersecNewsItem
 } from '../types';
 
 const API_BASE = '/api';
@@ -534,5 +537,42 @@ export const api = {
     } catch {
       return true;
     }
+  },
+
+  // Scrapy & Web Scraper / Threat Intelligence
+  async crawlUrl(url: string, spider: string = 'zakos'): Promise<{ success: boolean; items: ScrapedResult[] }> {
+    const res = await fetch(`${API_BASE}/scraper/crawl`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, spider }),
+    });
+    if (!res.ok) throw new Error('Crawl request failed');
+    return await res.json();
+  },
+
+  async analyzeScrapedData(item: ScrapedResult): Promise<{ success: boolean; analysis: ThreatAnalysis }> {
+    const res = await fetch(`${API_BASE}/scraper/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ item }),
+    });
+    if (!res.ok) throw new Error('Analysis request failed');
+    return await res.json();
+  },
+
+  async getScraperNews(spider: string = 'cve_feed'): Promise<{ success: boolean; items: CybersecNewsItem[] }> {
+    const res = await fetch(`${API_BASE}/scraper/news?spider=${encodeURIComponent(spider)}`);
+    if (!res.ok) throw new Error('Failed to fetch scraper news');
+    return await res.json();
+  },
+
+  async analyzeFeedItem(item: any): Promise<{ success: boolean; briefing: string }> {
+    const res = await fetch(`${API_BASE}/scraper/analyze-item`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ item }),
+    });
+    if (!res.ok) throw new Error('Failed to analyze feed item');
+    return await res.json();
   },
 };

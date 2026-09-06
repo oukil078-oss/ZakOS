@@ -275,6 +275,7 @@ export type SystemTabId =
   | 'schedule'
   | 'content'
   | 'fleet'
+  | 'scraper'
   | 'pentest' 
   | 'ide' 
   | 'terminal' 
@@ -410,5 +411,53 @@ export interface GitHubReadme {
   path: string;
   content: string;
   download_url: string;
+}
+
+// Scrapy & Web Scraper Intel Types
+export interface ScrapedResult {
+  url: string;
+  domain: string;
+  metadata: {
+    title: string;
+    description: string;
+    author: string;
+    status: number;
+    og: Record<string, string>;
+    server?: string;
+    content_type?: string;
+  };
+  emails: string[];
+  subdomains: string[];
+  links: {
+    internal: string[];
+    external: string[];
+    total_internal: number;
+    total_external: number;
+  };
+  text: string;
+  scraped_at: string;
+}
+
+export interface ThreatAnalysis {
+  summary: string;
+  threatLevel: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFORMATIONAL';
+  attackSurface: string[];
+  vulnerabilities: string[];
+  recommendations: string[];
+  rawAnalysis: string;
+}
+
+export interface CybersecNewsItem {
+  cve_id?: string;
+  title: string;
+  source: string;
+  url: string;
+  description: string;
+  published_date: string;
+  severity?: string;
+  category?: string;
+  authors?: string;
+  abstract?: string;
+  scraped_at: string;
 }
 

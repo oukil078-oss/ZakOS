@@ -16,6 +16,7 @@ import { AgentCollectiveView } from './components/hermes/AgentCollectiveView';
 import { CronScheduleView } from './components/schedule/CronScheduleView';
 import { AgentContentLibraryView } from './components/content/AgentContentLibraryView';
 import { ForgeFleetView } from './components/forge/ForgeFleetView';
+import { WebScraperIntelView } from './components/scraper/WebScraperIntelView';
 import { api } from './services/api';
 import { useVaultSync } from './hooks/useVaultSync';
 import { 
@@ -449,6 +450,13 @@ ${content}
         {/* Module 4d: Autonomous JobHunter / Forge Fleet */}
         {activeTab === 'fleet' && (
           <ForgeFleetView />
+        )}
+
+        {/* Module 4e: Web Scraper & Threat Intelligence (Scrapy & GPT-6 Astra) */}
+        {activeTab === 'scraper' && (
+          <WebScraperIntelView
+            onSaveToVaultNote={handleSaveAgentOutputToNote}
+          />
         )}
 
         {/* Module 5: Pentesting Lab Command Matrix */}
